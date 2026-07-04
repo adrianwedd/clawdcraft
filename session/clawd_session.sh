@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Launches the interactive Claude Code session that powers Clawd.
+# Started automatically inside tmux by bridge/clawd.js (session name: clawd).
+# Watch or steer it live:  tmux attach -t clawd   (detach: Ctrl-b d)
+
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+CLAUDE_BIN=$(node -e "console.log(require('$ROOT/bridge/config').claudeBin)")
+MODEL=$(node -e "console.log(require('$ROOT/bridge/config').model)")
+
+exec "$CLAUDE_BIN" \
+  --model "$MODEL" \
+  --allowedTools \
+    "Bash(node bridge/rcon.js:*)" \
+    "Bash(node bridge/say.js:*)" \
+    "Bash(node bridge/gift.js:*)" \
+    "Bash(node bridge/memory.js:*)" \
+  --append-system-prompt "$(cat "$ROOT/session/clawd_prompt.md")"

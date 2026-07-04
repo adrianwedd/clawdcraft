@@ -1,0 +1,10 @@
+# local server config (contains RCON password)
+config.json
+
+# runtime state
+clawd_memory/
+
+# build artifacts
+packs/build/
+node_modules/
+*.log

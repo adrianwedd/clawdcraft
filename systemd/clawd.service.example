@@ -1,0 +1,24 @@
+[Unit]
+Description=MineClawd - Claude Code in-game chat bridge
+After=network-online.target
+# If your Minecraft server is a systemd unit, uncomment and adjust:
+#After=network-online.target minecraft.service
+#Wants=minecraft.service
+
+[Service]
+Type=simple
+# Adjust user and paths to your install:
+User=you
+WorkingDirectory=/home/you/mineclawd
+ExecStart=/usr/bin/node /home/you/mineclawd/bridge/clawd.js
+Restart=always
+RestartSec=10
+Environment=HOME=/home/you
+# PATH must include the `claude` binary (check: which claude)
+Environment=PATH=/home/you/.local/bin:/usr/local/bin:/usr/bin:/bin
+# The bridge spawns Clawd's brain as a tmux session; never kill tmux (or any
+# user tmux sessions sharing its server) when this service stops/restarts.
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

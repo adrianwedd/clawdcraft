@@ -1,0 +1,13 @@
+{
+  "rcon": {
+    "host": "localhost",
+    "port": 25575,
+    "password": "CHANGE_ME — must match rcon.password in server.properties"
+  },
+  "logFile": "/home/you/minecraft_server/logs/latest.log",
+  "ops": ["YourJavaName", ".YourBedrockName"],
+  "tmuxSession": "clawd",
+  "claudeBin": "claude",
+  "model": "claude-sonnet-5",
+  "avatarTag": "clawd"
+}
