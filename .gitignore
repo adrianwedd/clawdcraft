@@ -6,6 +6,7 @@ clawd_memory/
 companion_data.json
 companion_ctl.json
 ambient_ctl.json
+seen_players.json
 
 # build artifacts
 packs/build/

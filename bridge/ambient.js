@@ -24,7 +24,19 @@ const path = require("path");
 const CFG = require("./config");
 
 const CTL_FILE = path.join(CFG.root, "ambient_ctl.json");
-const MEMORY_DIR = path.join(CFG.root, "clawd_memory");
+const SEEN_FILE = path.join(CFG.root, "seen_players.json");
+
+let seenPlayers = new Set();
+try {
+  seenPlayers = new Set(JSON.parse(fs.readFileSync(SEEN_FILE, "utf8")));
+} catch {}
+
+function markSeen(player) {
+  if (seenPlayers.has(player)) return true;
+  seenPlayers.add(player);
+  fs.writeFileSync(SEEN_FILE, JSON.stringify([...seenPlayers]));
+  return false;
+}
 
 const PROX = {
   radius: 12,
@@ -124,7 +136,7 @@ async function onLine(line) {
   if (j) {
     const player = j[1];
     online.add(player);
-    const known = fs.existsSync(path.join(MEMORY_DIR, `${player}.json`));
+    const known = markSeen(player);
     await relayEvent(known ? "join" : "firstJoin",
       known
         ? `${player} just joined the game`

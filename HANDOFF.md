@@ -80,9 +80,11 @@ retired — don't edit it.
    double-answer behavior near CraftGPT mobs, and whether the "may notice"
    prompt keeps Clawd tastefully quiet. Tune chances/cooldowns in
    config.json from real behavior. (Human-gated: needs the user + players
-   online. Note 14:39 today: first `[MC event]` firstJoin relay fired for
-   `.Nairdaaa` — memory dir was empty so a returning op read as "brand new
-   player". Expect that skew until clawd_memory/ repopulates.)
+   online. The 14:39 skew — returning op greeted as "brand new player"
+   because clawd_memory/ was empty — is fixed: firstJoin detection now uses
+   a persistent seen_players.json registry, not memory-file existence.
+   Authored under user direction in another session, live since 15:09.
+   Every player reads as new ONCE while the registry seeds itself.)
 2. **Decide: push 4 local commits** — main is ahead of origin (STRATEGY.md
    doctrine, rcon guard + test + --dry, skills, this HANDOFF). Public repo;
    diff reviewed for secrets this session, but pushing is publishing —
