@@ -93,12 +93,11 @@ retired — don't edit it.
    `session/clawd_prompt.md` telling Clawd that a `refused:` message from
    rcon.js is final — apologize in-character, don't retry variants. Prompt
    edits take effect on session recreation (`clawd reset` or tmux kill).
-4. **Backlog** (user-endorsed order): quest engine (state per player,
-   rewards through gift.js), mood/state via particles+sounds
-   (Bedrock-friendly), structured memory (only when plain notes fail),
-   MCP server (only if the tmux bridge creaks). Also parked: "ClawdBody"
-   Paper plugin for true native movement (see CraftGPT note) — only if the
-   425ms glide still feels teleport-y.
+4. **Backlog → ROADMAP.md + GitHub issues** (2026-07-04): the backlog now
+   lives in ROADMAP.md with one issue per item
+   (https://github.com/adrianwedd/clawdcraft/issues). Gated items
+   (structured memory, MCP server, ClawdBody) stay in ROADMAP's "Gated"
+   section with their triggers — no issues until a trigger fires.
 
 ## Field notes / gotchas (hard-won today)
 
