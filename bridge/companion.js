@@ -205,15 +205,22 @@ async function tick() {
   const mode = readCtl();
   if (mode === "stay") return;
 
-  if (tickNo % 20 === 1) {
-    if (!passed(await rc(`execute if entity @e[type=minecraft:allay,tag=${TAG}]`))) {
-      log("avatar missing — resummoning at home");
-      if (avatar.crab) await rc(avatar.skinKillCmd);
-      await rc(`execute in ${DIM} run summon minecraft:allay ${DEPOT.home.x} ${DEPOT.home.y} ${DEPOT.home.z} ${avatar.allayNbt}`);
-    }
-    if (avatar.crab && !passed(await rc(avatar.skinProbeCmd))) {
-      log("crab skin missing — reattaching");
-      await rc(avatar.skinSummonCmd);
+  // Avatar maintenance. Selectors can't see (and tp can't move) entities in
+  // unloaded chunks, and /summon into an unloaded chunk SUCCEEDS but creates
+  // an invisible-to-us entity — so: never summon at fixed coords, only at a
+  // player (their chunk is loaded, and with nobody online there's nobody to
+  // see Clawd anyway). Duplicates can still appear when a chunk holding a
+  // stray old avatar loads back in, so count and cull rather than probe.
+  if (tickNo % 20 === 1 && passed(await rc(`execute if entity @a`))) {
+    const count = (res) => +((res || "").match(/Count: (\d+)/)?.[1] || 0);
+    const avatars = count(await rc(`execute if entity @e[type=minecraft:allay,tag=${TAG}]`));
+    const skins = avatar.crab ? count(await rc(avatar.skinProbeCmd)) : 0;
+    if (avatars !== 1 || (avatar.crab && skins !== 1)) {
+      log(`avatar maintenance (allays: ${avatars}, skins: ${skins}) — respawning fresh`);
+      if (avatars > 0) await rc(`minecraft:kill @e[type=minecraft:allay,tag=${TAG}]`);
+      if (avatar.crab && skins > 0) await rc(avatar.skinKillCmd);
+      await rc(`execute at @a[limit=1,sort=random] run summon minecraft:allay ~1.5 ~2 ~1.5 ${avatar.allayNbt}`);
+      if (avatar.crab) await rc(avatar.skinSummonCmd);
     }
   }
 
