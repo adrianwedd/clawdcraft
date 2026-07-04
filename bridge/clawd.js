@@ -40,6 +40,12 @@ const LAUNCHER = path.join(CFG.root, "session/clawd_session.sh");
 const OPS = new Set(CFG.ops);
 const AVATAR = `@e[type=minecraft:allay,tag=${CFG.avatarTag},limit=1]`;
 
+// Chat addressed to Clawd. Shared by handle() and --dry so they can't drift.
+const TRIGGER_RE = /^@?clawd[,:!.]?\s*(.*)$/i;
+// Phrases handle() answers bridge-side without waking the brain (no tokens).
+// Informational (used by --dry); keep in sync with the fast paths in handle().
+const FAST_PATH_RE = /^(listen(\s+(on|off|status))?|stay|wait|wait here|go home|home|go tidy up|follow me|follow|come along|come|here|come here|reset|)$/i;
+
 const ts = () => new Date().toISOString().slice(11, 19);
 const log = (...a) => console.log(`[${ts()}]`, ...a);
 
@@ -138,7 +144,7 @@ async function inject(text) {
 // ─── Chat handling ───────────────────────────────────────────────────────────
 async function handle(player, message) {
   const role = OPS.has(player) ? "op" : "player";
-  const m = message.match(/^@?clawd[,:!.]?\s*(.*)$/i);
+  const m = message.match(TRIGGER_RE);
   if (!m) return ambient.onChat(player, role, message);
   const prompt = m[1].trim();
   log(`trigger from ${player}: "${prompt || "(hello)"}"`);
@@ -228,6 +234,35 @@ function watchLog() {
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
+// --dry: classify a line with ZERO side effects — no RCON, no tmux, no tokens.
+// Unlike --test (which drives the LIVE server), this is safe to run any time.
+// Accepts "Name: message" like --test, or a full server log line.
+const dryArg = process.argv.indexOf("--dry");
+if (dryArg !== -1) {
+  const raw = process.argv[dryArg + 1] || "";
+  let player, msg;
+  const fromLog = raw.match(CHAT_RE);
+  if (fromLog) [, player, msg] = fromLog;
+  else [, player, msg] = raw.match(/^([^:]+):\s*(.+)$/) || [];
+  if (!player) {
+    console.error('usage: node clawd.js --dry "PlayerName: message"  (or a full server log line)');
+    process.exit(1);
+  }
+  const role = OPS.has(player) ? "op" : "player";
+  const t = msg.match(TRIGGER_RE);
+  if (!t) {
+    console.log(`no trigger — ambient path: proximity relay only if listening is ON and ${player} is within radius of the avatar`);
+  } else {
+    const prompt = t[1].trim();
+    if (FAST_PATH_RE.test(prompt)) {
+      console.log(`trigger (${role}) — fast path "${prompt || "(hello)"}": handled bridge-side, no tokens`);
+    } else {
+      console.log(`trigger (${role}) — would inject into the brain: [MC chat] <${player}> (${role}): ${prompt}`);
+    }
+  }
+  process.exit(0);
+}
+
 const testArg = process.argv.indexOf("--test");
 if (testArg !== -1) {
   const [, player, msg] = process.argv[testArg + 1]?.match(/^([^:]+):\s*(.+)$/) || [];

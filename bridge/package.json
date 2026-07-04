@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Bridge between Minecraft server chat and a Claude Code session in tmux",
   "license": "MIT",
+  "scripts": {
+    "test": "node rcon_guard.test.js"
+  },
   "dependencies": {
     "rcon-client": "^4.2.5"
   }
