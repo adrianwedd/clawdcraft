@@ -34,34 +34,44 @@ it still exists but nothing runs from it; don't edit it, edit this repo.
 
 ## Remaining next steps
 
-1. **Restart into the crab (v0.2.1) and verify** — everything is STAGED
-   (2026-07-04): the v0.2.1 mcpack is in
-   `plugins/Geyser-Spigot/packs/`, server.properties points at the v0.2.1
-   release URL with sha1 `ab78dc87e3ec9164cd795d15d151c6e6eb540705`, and
-   `config.json` has `"avatarModel": "crab"`. Remaining: restart the
-   Minecraft server, then `sudo systemctl restart clawd`, then eyeball with
-   a client on each edition. NOT yet verified in-game.
-   - Both editions generate from one cube spec in
-     `packs/tools/build_packs.py` (`--style crab`, default; preview:
-     `packs/build/preview_front.png`). Wild allays are untouched: Bedrock
-     uses a name-keyed render controller (only allays named "Clawd" turn
-     crab — verify Molang `query.get_name` works through Geyser!); Java gets
-     a crab item_display scaled 1.2x to enclose/hide the carrier allay
-     (`bridge/avatar.js`; it can't ride — tp dismounts passengers — so the
-     bridge snaps it after moves; summon NBT validated over RCON already).
-   - Tune alignment/scale in `bridge/avatar.js` if the allay pokes out or
-     the crab floats off-center on Java.
-   - Fallbacks: v0.2.0 = same crab but affects all allays (Bedrock global
-     geometry + Java transparent-allay hack); v0.1.0 / `--style classic` =
-     plain coral recolor, `avatarModel` back to `"allay"`.
-2. **Roadmap features** (user-approved direction, not yet built):
-   - Proximity chat: off by default, op toggle (`clawd listen on/off`),
-     per-player cooldown, radius check bridge-side via
-     `execute if entity @e[name=...,distance=..N]`; beware double-answering
-     next to CraftGPT mobs.
-   - (Idle behavior from the old roadmap is DONE — companion.js. True
-     crab-shaped Clawd is BUILT — v0.2.0 packs + avatar.js — pending in-game
-     verification, step 1.)
+1. **Proximity chat** (user-approved; next up): off by default, op toggle
+   (`clawd listen on/off/status`), per-player + global cooldowns, radius
+   check bridge-side via `execute as @a[name=...] at @s if entity
+   @e[type=minecraft:allay,tag=clawd,distance=..N]`; relay as a softer
+   `[MC overheard near Clawd]` prompt with "may notice, not must reply"
+   semantics in clawd_prompt.md; beware double-answering next to CraftGPT
+   mobs. Cooldowns/radius are the token budget, not just politeness.
+2. **RCON denylist hardening** (agreed 2026-07-04): enforce the prompt's
+   "NEVER run" list in `bridge/rcon.js` code — refuse
+   stop/reload/op/deop/ban/whitelist/kick and broad `@a`/`@e` kill/tp
+   selectors. Denylist, NOT an allowlist of verbs: raw command freedom is
+   what makes builds magical (gift.js-style allowlists only fit enumerable
+   things like items).
+3. **Project skills**: `.claude/skills/` for the live-server rituals
+   (deploy-packs, smoke-test) so future sessions don't rediscover them.
+4. Later, roughly in order: quest engine (rewards via gift.js), mood/state
+   (particles+sounds, Bedrock-friendly), structured memory (only when plain
+   notes actually fail), MCP server (only if the tmux bridge starts
+   creaking).
+
+## Done and verified (2026-07-04)
+
+- **Crab Clawd (v0.2.1) LIVE and verified in-game by the user** on the crab
+  avatar. One cube spec in `packs/tools/build_packs.py` (`--style crab`)
+  generates: Bedrock name-keyed render controller (only allays named
+  "Clawd" turn crab — Molang `query.get_name` confirmed working through
+  Geyser 2.10.1), Java crab item_display scaled 1.2x enclosing the carrier
+  allay (it can't ride — tp dismounts passengers — so the bridge snaps it
+  after moves: `bridge/avatar.js`). Wild allays untouched on both editions.
+  Fallbacks if ever needed: v0.2.0 (crab, but affects all allays), v0.1.0 /
+  `--style classic` (coral recolor, `avatarModel: "allay"`).
+- Companion + emotes + gifts + memory all live from this repo
+  (`avatarModel: "crab"` in config.json).
+- GOTCHA burned into companion.js: `/summon` into an UNLOADED chunk
+  succeeds but the entity is invisible to every selector — the old
+  resummon-at-depot loop stacked 83 invulnerable allays before the fix
+  (maintenance now only runs with players online, summons AT a player,
+  counts-and-culls duplicates).
 
 ## Things NOT to do
 

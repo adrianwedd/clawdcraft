@@ -32,10 +32,10 @@ const CFG = require("./config");
 const avatar = require("./avatar");
 
 // ─── Tuning ──────────────────────────────────────────────────────────────────
-const TICK_MS = 850;          // behavior tick; each tick issues 2-6 rcon cmds
+const TICK_MS = 425;          // behavior tick; each tick issues 2-6 rcon cmds
 const FOLLOW_DIST = 2.1;      // hover this far beside the player…
 const FOLLOW_Y = 2.0;         // …and this far above their feet
-const STEP_MAX = 2.4;         // max blocks moved per tick (glide speed)
+const STEP_MAX = 1.2;         // max blocks moved per tick (glide speed)
 const SEEK_RADIUS = 32;       // item search radius around the allay
 const PLAYER_GUARD = 8;       // never take items this close to any player
 
@@ -66,6 +66,7 @@ const parseCoords = (res) => {
 let rc = null;                // rcon send fn, injected by start()
 let state = { lastTarget: null, cells: {} };
 let tickNo = 0;
+let moved = false;            // did this tick tp the allay? (skin syncs only then)
 let idleEntered = false;
 let waypoint = null;
 let collected = { count: 0, since: 0, lastBrag: 0 };
@@ -111,6 +112,7 @@ async function followTick(target) {
     // Offline, far, or different world? Snap to them if online, else roam.
     if (!passed(await rc(`execute if entity ${q(target)}`))) return false;
     await rc(`execute at ${q(target)} run minecraft:tp ${AVATAR} ~1.5 ~2 ~1.5`);
+    moved = true;
     return true;
   }
   const [pPos, aPos] = [parseCoords(await rc(`data get entity ${q(target)} Pos`)), await avatarPos()];
@@ -120,7 +122,10 @@ async function followTick(target) {
   const h = Math.hypot(dx, dz) || 1;
   const want = { x: pPos.x + (dx / h) * FOLLOW_DIST, y: pPos.y + FOLLOW_Y, z: pPos.z + (dz / h) * FOLLOW_DIST };
   const next = step(aPos, want);
-  if (next) await rc(`execute at ${q(target)} run minecraft:tp ${AVATAR} ${fmt(next)} facing entity ${q(target)} eyes`);
+  if (next) {
+    await rc(`execute at ${q(target)} run minecraft:tp ${AVATAR} ${fmt(next)} facing entity ${q(target)} eyes`);
+    moved = true;
+  }
   return true;
 }
 
@@ -154,6 +159,7 @@ async function roamTick() {
     idleEntered = true;
     waypoint = null;
     await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${DEPOT.home.x} ${DEPOT.home.y} ${DEPOT.home.z}`);
+    moved = true;
     return;
   }
   // Nobody online at all → nothing drops, chunks unload; idle cheaply.
@@ -168,7 +174,10 @@ async function roamTick() {
     const dist = Math.hypot(itemPos.x - aPos.x, itemPos.y - aPos.y, itemPos.z - aPos.z);
     if (dist > 3) {
       const next = step(aPos, { x: itemPos.x, y: itemPos.y + 1.5, z: itemPos.z });
-      if (next) await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt({ ...itemPos, y: itemPos.y + 0.2 })}`);
+      if (next) {
+        await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt({ ...itemPos, y: itemPos.y + 0.2 })}`);
+        moved = true;
+      }
     } else if (passed(await rc(`execute as @e[type=minecraft:item,tag=${TAG}_c,limit=1] at @s if entity @a[distance=..${PLAYER_GUARD}]`))) {
       await rc(`tag @e[type=minecraft:item,tag=${TAG}_c] add ${TAG}_skip`); // a player is near it — leave it be for a while
     } else {
@@ -193,7 +202,10 @@ async function roamTick() {
       waypoint = { x: ROAM.x + Math.cos(a) * r, y: ROAM.yMin + Math.random() * (ROAM.yMax - ROAM.yMin), z: ROAM.z + Math.sin(a) * r };
     }
     const next = step(aPos, waypoint);
-    if (next) await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt(waypoint)}`);
+    if (next) {
+      await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt(waypoint)}`);
+      moved = true;
+    }
   }
   await rc(`tag @e[type=minecraft:item,tag=${TAG}_c] remove ${TAG}_c`);
   if (tickNo % 200 === 0) await rc(`tag @e[type=minecraft:item] remove ${TAG}_skip`); // retry guarded items every ~3 min
@@ -202,6 +214,7 @@ async function roamTick() {
 // ─── Main loop ───────────────────────────────────────────────────────────────
 async function tick() {
   tickNo++;
+  moved = false;
   const mode = readCtl();
   if (mode === "stay") return;
 
@@ -227,12 +240,12 @@ async function tick() {
   if (mode !== "home" && state.lastTarget) {
     if (await followTick(state.lastTarget)) {
       idleEntered = false;
-      if (avatar.crab) await rc(avatar.skinSyncCmd);
+      if (avatar.crab && moved) await rc(avatar.skinSyncCmd);
       return;
     }
   }
   await roamTick();
-  if (avatar.crab) await rc(avatar.skinSyncCmd);
+  if (avatar.crab && moved) await rc(avatar.skinSyncCmd);
 }
 
 function start(rcFn) {
