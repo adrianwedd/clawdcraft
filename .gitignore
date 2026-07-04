@@ -5,6 +5,7 @@ config.json
 clawd_memory/
 companion_data.json
 companion_ctl.json
+ambient_ctl.json
 
 # build artifacts
 packs/build/

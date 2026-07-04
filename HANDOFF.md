@@ -34,22 +34,15 @@ it still exists but nothing runs from it; don't edit it, edit this repo.
 
 ## Remaining next steps
 
-1. **Proximity chat** (user-approved; next up): off by default, op toggle
-   (`clawd listen on/off/status`), per-player + global cooldowns, radius
-   check bridge-side via `execute as @a[name=...] at @s if entity
-   @e[type=minecraft:allay,tag=clawd,distance=..N]`; relay as a softer
-   `[MC overheard near Clawd]` prompt with "may notice, not must reply"
-   semantics in clawd_prompt.md; beware double-answering next to CraftGPT
-   mobs. Cooldowns/radius are the token budget, not just politeness.
-2. **RCON denylist hardening** (agreed 2026-07-04): enforce the prompt's
+1. **RCON denylist hardening** (agreed 2026-07-04): enforce the prompt's
    "NEVER run" list in `bridge/rcon.js` code — refuse
    stop/reload/op/deop/ban/whitelist/kick and broad `@a`/`@e` kill/tp
    selectors. Denylist, NOT an allowlist of verbs: raw command freedom is
    what makes builds magical (gift.js-style allowlists only fit enumerable
    things like items).
-3. **Project skills**: `.claude/skills/` for the live-server rituals
+2. **Project skills**: `.claude/skills/` for the live-server rituals
    (deploy-packs, smoke-test) so future sessions don't rediscover them.
-4. Later, roughly in order: quest engine (rewards via gift.js), mood/state
+3. Later, roughly in order: quest engine (rewards via gift.js), mood/state
    (particles+sounds, Bedrock-friendly), structured memory (only when plain
    notes actually fail), MCP server (only if the tmux bridge starts
    creaking).
@@ -67,6 +60,16 @@ it still exists but nothing runs from it; don't edit it, edit this repo.
   `--style classic` (coral recolor, `avatarModel: "allay"`).
 - Companion + emotes + gifts + memory all live from this repo
   (`avatarModel: "crab"` in config.json).
+- **Ambient presence live** (2026-07-04, `bridge/ambient.js`): proximity
+  chat (`[MC overheard near Clawd]`, radius 12, runtime-OFF until an op says
+  `clawd listen on`) + world-event reactions (`[MC event]`: first-joins
+  always relay, joins/advancements/deaths by % chance, live now). Cooldowns +
+  hourly caps in config.json are the token budget. Prompt has a
+  "may notice, not must reply" section — Clawd stays silent unless a moment
+  deserves one line. GOTCHA fixed along the way: rcon-client's `end()` is
+  async and rejects when not connected — a bare try/catch around it doesn't
+  stop the rejection from killing the process (clawd.js `rc()` now awaits it
+  and serializes concurrent connects).
 - GOTCHA burned into companion.js: `/summon` into an UNLOADED chunk
   succeeds but the entity is invisible to every selector — the old
   resummon-at-depot loop stacked 83 invulnerable allays before the fix

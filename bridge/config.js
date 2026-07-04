@@ -37,6 +37,8 @@ module.exports = {
   avatarTag: cfg.avatarTag || "clawd",
   avatarModel: cfg.avatarModel || "allay",
   companion: cfg.companion || null,
+  proximity: cfg.proximity || null,
+  events: cfg.events || null,
   configPath: file,
   root: path.join(__dirname, ".."),
 };

@@ -64,7 +64,18 @@ node bridge/clawd.js --test "YourName: clawd hello"
 | `clawd follow me` | Companion mode: glides along beside you (free) |
 | `clawd stay` | Companion freezes in place (free) |
 | `clawd go home` | Companion returns to its depot and tidies up (free) |
+| `clawd listen on/off/status` | Op-only: toggle proximity listening |
 | `clawd reset` | Wipes the conversation (`/clear`) |
+
+**Ambient presence** (`bridge/ambient.js`, optional): with `proximity` /
+`events` sections in `config.json`, Clawd stops being purely call-and-response.
+Ordinary chat spoken within a few blocks of him is relayed as *overheard*
+(runtime-off by default — ops enable with `clawd listen on`), and world events
+(first-ever joins, advancements, deaths) are relayed with a CraftGPT-style
+percent chance. The prompt teaches "may notice, not must reply": Clawd reacts
+with one short line when a moment deserves it and stays silent otherwise.
+Per-player/global cooldowns and hourly caps in the config are the token
+budget — every relay costs a brain turn.
 
 Players listed in `config.json` `ops` are tagged `(op)` and may ask for world
 changes; everyone else gets chat, gifts, and charm only.

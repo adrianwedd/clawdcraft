@@ -12,6 +12,21 @@
   "avatarTag": "clawd",
   "avatarModel": "allay",
 
+  "proximity": {
+    "enabled": false,
+    "radius": 12,
+    "playerCooldownMs": 60000,
+    "globalCooldownMs": 15000,
+    "maxPerHour": 20
+  },
+
+  "events": {
+    "enabled": false,
+    "cooldownMs": 45000,
+    "maxPerHour": 15,
+    "chance": { "join": 50, "firstJoin": 100, "advancement": 80, "death": 60, "leave": 0 }
+  },
+
   "companion": {
     "enabled": false,
     "dim": "minecraft:overworld",

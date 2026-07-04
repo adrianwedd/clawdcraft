@@ -18,6 +18,8 @@
 // In game:
 //   clawd <anything>    talk to Clawd / ask for help / ask for builds
 //   clawd come          call the avatar to you (no tokens)
+//   clawd listen on|off op-only: proximity chat — Clawd may react to nearby
+//                       chatter and world events (joins, advancements, deaths)
 //   clawd follow me     companion mode: glide along beside you (if configured)
 //   clawd stay          companion mode: freeze in place
 //   clawd go home       companion mode: return to the depot and tidy up
@@ -30,6 +32,7 @@ const CFG = require("./config");
 const { createRcon, sleep } = require("./rcon_helper");
 const companion = require("./companion");
 const avatar = require("./avatar");
+const ambient = require("./ambient");
 
 const CTL_FILE = path.join(CFG.root, "companion_ctl.json");
 
@@ -42,14 +45,21 @@ const log = (...a) => console.log(`[${ts()}]`, ...a);
 
 // ─── RCON ────────────────────────────────────────────────────────────────────
 let rcon = null;
+let rconConnecting = null; // concurrent rc() calls share one connect attempt
 async function rc(cmd) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      if (!rcon) { rcon = createRcon(); await rcon.connect(); }
+      if (!rcon) {
+        // Serialize connection setup: ambient/companion/handle all share this.
+        rconConnecting ??= (async () => { const r = createRcon(); await r.connect(); return r; })();
+        try { rcon = await rconConnecting; } finally { rconConnecting = null; }
+      }
       return await rcon.sendRL(cmd);
     } catch (e) {
       log(`RCON error (${e.message}), reconnecting...`);
-      try { rcon?.end(); } catch {}
+      // NB: rcon-client's end() is async and REJECTS if not connected — a
+      // bare try/catch doesn't cover that and the rejection kills the process.
+      try { await rcon?.end(); } catch {}
       rcon = null;
       await sleep(1500);
     }
@@ -127,11 +137,25 @@ async function inject(text) {
 
 // ─── Chat handling ───────────────────────────────────────────────────────────
 async function handle(player, message) {
+  const role = OPS.has(player) ? "op" : "player";
   const m = message.match(/^@?clawd[,:!.]?\s*(.*)$/i);
-  if (!m) return;
+  if (!m) return ambient.onChat(player, role, message);
   const prompt = m[1].trim();
   log(`trigger from ${player}: "${prompt || "(hello)"}"`);
   companion.setTarget(player);
+
+  const listen = prompt.match(/^listen(?:\s+(on|off|status))?$/i);
+  if (listen && ambient.proxEnabled) {
+    if (role !== "op") {
+      await say("*wiggles antennae* Only operators can change my listening, sorry!");
+      return;
+    }
+    const arg = (listen[1] || "status").toLowerCase();
+    if (arg === "on") { ambient.setListening(true); await say("*perks up* Okay, I'm listening! I might chime in when I overhear things nearby."); }
+    else if (arg === "off") { ambient.setListening(false); await say("*covers ears politely* Got it, only talking when called."); }
+    else await say(`My ears are currently ${ambient.listening() ? "OPEN — I may react to nearby chatter" : "closed — I only answer to 'clawd'"}.`);
+    return;
+  }
 
   if (companion.enabled && /^(stay|wait|wait here)$/i.test(prompt)) {
     fs.writeFileSync(CTL_FILE, '{"mode":"stay"}');
@@ -172,7 +196,6 @@ async function handle(player, message) {
   await ensureAvatar(player);
   await startThinking();
   await rc(`title @a actionbar {"text":"✦ Clawd is thinking...","color":"gray","italic":true}`);
-  const role = OPS.has(player) ? "op" : "player";
   const ok = await inject(`[MC chat] <${player}> (${role}): ${prompt}`);
   if (!ok) {
     await rc(`effect clear ${AVATAR} minecraft:glowing`);
@@ -195,6 +218,7 @@ function watchLog() {
     for (const line of lines) {
       const m = line.match(CHAT_RE);
       if (m) handle(m[1], m[2]).catch((e) => log(`unhandled: ${e.message}`));
+      else ambient.onLine(line).catch((e) => log(`ambient: ${e.message}`));
     }
   });
   tail.on("close", () => {
@@ -213,4 +237,5 @@ if (testArg !== -1) {
   log(`ClawdCraft bridge starting (tmux: ${CFG.tmuxSession}, ops: ${[...OPS].join(", ") || "none"})`);
   ensureSession().then(() => watchLog());
   companion.start(rc);
+  ambient.start(rc, inject).catch((e) => log(`ambient start: ${e.message}`));
 }
