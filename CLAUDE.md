@@ -14,6 +14,9 @@ do-not-dos; read it before changing anything.
 `/home/pi/minecraft_server/bot/` is retired — don't edit it. Public repo:
 https://github.com/adrianwedd/clawdcraft
 
+Read STRATEGY.md before any task. It overrides your judgment. Conflicts with
+reality are escalations.
+
 Quick sanity checks:
 - `node bridge/clawd.js --test "TestPlayer: clawd hello"` (needs config.json)
 - `journalctl -u clawd -f` — live bridge logs
