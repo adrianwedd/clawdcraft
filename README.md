@@ -61,6 +61,9 @@ node bridge/clawd.js --test "YourName: clawd hello"
 |-----|--------------|
 | `clawd <anything>` | Talk to Clawd — questions, requests, builds |
 | `clawd come` | Avatar flies to you (free, no tokens) |
+| `clawd follow me` | Companion mode: glides along beside you (free) |
+| `clawd stay` | Companion freezes in place (free) |
+| `clawd go home` | Companion returns to its depot and tidies up (free) |
 | `clawd reset` | Wipes the conversation (`/clear`) |
 
 Players listed in `config.json` `ops` are tagged `(op)` and may ask for world
@@ -83,6 +86,16 @@ cd packs/tools && python3 build_packs.py --mc-version <your MC version>
   and `resource-pack-sha1=` in `server.properties` (the script prints the sha1).
 - Bedrock: drop `build/clawdcraft-bedrock.mcpack` into
   `plugins/Geyser-Spigot/packs/`. Restart the server after either change.
+
+**Companion behaviors** (`bridge/companion.js`, optional): with a `companion`
+section in `config.json` (see `config.example.json`), the allay gets a body of
+its own — it follows whoever last spoke to Clawd with smooth glide-teleports,
+and when they log off it flies home to a depot platform, patrols, and sorts
+dropped items into per-item-type chests (allocating new chest+hopper+sign
+cells as needed; items near players are left alone). All movement is plain
+RCON from the bridge — the allay keeps `NoAI`, and none of it costs tokens.
+Modes: `node bridge/companion_ctl.js auto|stay|home`, or the in-game phrases
+above.
 
 ## Safety model
 

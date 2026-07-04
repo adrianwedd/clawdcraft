@@ -4,14 +4,15 @@ ClawdCraft: puts Claude Code inside a Minecraft server as "Clawd", an in-game
 creature players talk to in chat. Architecture, install, and gotchas: README.md.
 
 **Start here: `HANDOFF.md`** — current state and the ordered next steps
-(migrate the live install at `/home/pi/minecraft_server/bot/` to this repo,
-deploy the resource packs, push to GitHub, then roadmap features). It also
-lists the do-not-dos; read it before changing anything.
+(deploy the resource packs, then roadmap features). It also lists the
+do-not-dos; read it before changing anything.
 
-The live, currently-running copy of this system is `clawd.service` →
-`/home/pi/minecraft_server/bot/` on this machine (Obi's Minecraft Server,
-PaperMC 1.21.11 on a Pi 5 — its own CLAUDE.md is in that directory). Until
-step 1 of HANDOFF.md is done, changes here do NOT affect the running Clawd.
+**This repo IS the live install** (since 2026-07-04): `clawd.service` runs
+`bridge/clawd.js` from here on this machine (Obi's Minecraft Server, PaperMC
+1.21.11 on a Pi 5). Edits to bridge code take effect on
+`sudo systemctl restart clawd`. The old copy at
+`/home/pi/minecraft_server/bot/` is retired — don't edit it. Public repo:
+https://github.com/adrianwedd/clawdcraft
 
 Quick sanity checks:
 - `node bridge/clawd.js --test "TestPlayer: clawd hello"` (needs config.json)

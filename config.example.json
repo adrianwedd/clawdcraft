@@ -9,5 +9,20 @@
   "tmuxSession": "clawd",
   "claudeBin": "claude",
   "model": "claude-sonnet-5",
-  "avatarTag": "clawd"
+  "avatarTag": "clawd",
+
+  "companion": {
+    "enabled": false,
+    "dim": "minecraft:overworld",
+    "roam": { "x": 0, "y": 100, "z": 0, "r": 42, "yMin": 100, "yMax": 108 },
+    "depot": {
+      "x0": 10, "z0": 10,
+      "y": 100,
+      "cols": 6, "rows": 4,
+      "dx": 2, "dz": 3,
+      "overflow": { "x": 8, "z": 19 },
+      "home": { "x": 14, "y": 104, "z": 14 }
+    },
+    "depotHint": "at my home platform"
+  }
 }

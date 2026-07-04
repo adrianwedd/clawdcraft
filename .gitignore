@@ -3,6 +3,8 @@ config.json
 
 # runtime state
 clawd_memory/
+companion_data.json
+companion_ctl.json
 
 # build artifacts
 packs/build/

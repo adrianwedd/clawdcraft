@@ -35,6 +35,7 @@ module.exports = {
   claudeBin: cfg.claudeBin || "claude",
   model: cfg.model || "claude-sonnet-5",
   avatarTag: cfg.avatarTag || "clawd",
+  companion: cfg.companion || null,
   configPath: file,
   root: path.join(__dirname, ".."),
 };

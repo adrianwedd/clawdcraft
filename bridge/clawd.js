@@ -18,12 +18,19 @@
 // In game:
 //   clawd <anything>    talk to Clawd / ask for help / ask for builds
 //   clawd come          call the avatar to you (no tokens)
+//   clawd follow me     companion mode: glide along beside you (if configured)
+//   clawd stay          companion mode: freeze in place
+//   clawd go home       companion mode: return to the depot and tidy up
 //   clawd reset         clear the Clawd session's context (/clear)
 
+const fs = require("fs");
 const { spawn, execFile } = require("child_process");
 const path = require("path");
 const CFG = require("./config");
 const { createRcon, sleep } = require("./rcon_helper");
+const companion = require("./companion");
+
+const CTL_FILE = path.join(CFG.root, "companion_ctl.json");
 
 const LAUNCHER = path.join(CFG.root, "session/clawd_session.sh");
 const OPS = new Set(CFG.ops);
@@ -118,7 +125,24 @@ async function handle(player, message) {
   if (!m) return;
   const prompt = m[1].trim();
   log(`trigger from ${player}: "${prompt || "(hello)"}"`);
+  companion.setTarget(player);
 
+  if (companion.enabled && /^(stay|wait|wait here)$/i.test(prompt)) {
+    fs.writeFileSync(CTL_FILE, '{"mode":"stay"}');
+    await say("*hovers in place* Okay, I'll wait right here!");
+    return;
+  }
+  if (companion.enabled && /^(go home|home|go tidy up)$/i.test(prompt)) {
+    fs.writeFileSync(CTL_FILE, '{"mode":"home"}');
+    await say(`*zooms off* Time to tidy up! My depot is ${companion.depotHint} if you need me.`);
+    return;
+  }
+  if (companion.enabled && /^(follow me|follow|come along)$/i.test(prompt)) {
+    fs.writeFileSync(CTL_FILE, '{"mode":"auto"}');
+    await ensureAvatar(player);
+    await say("*flutters to your shoulder* Right behind you!");
+    return;
+  }
   if (/^(come|here|come here)$/i.test(prompt)) {
     await ensureAvatar(player);
     await say("*flies over* Here I am!");
@@ -182,4 +206,5 @@ if (testArg !== -1) {
 } else {
   log(`ClawdCraft bridge starting (tmux: ${CFG.tmuxSession}, ops: ${[...OPS].join(", ") || "none"})`);
   ensureSession().then(() => watchLog());
+  companion.start(rc);
 }
