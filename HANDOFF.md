@@ -34,30 +34,26 @@ it still exists but nothing runs from it; don't edit it, edit this repo.
 
 ## Remaining next steps
 
-1. **Deploy the crab packs (v0.2.0)** (needs a restart window + a human with
-   a client). Clawd is now truly crab-shaped (user request 2026-07-04): both
-   editions' assets generate from one cube spec in
-   `packs/tools/build_packs.py` (`--style crab`, default; preview:
-   `packs/build/preview_front.png`). NOT yet verified in-game.
-   - Bedrock: `cp packs/build/clawdcraft-bedrock.mcpack
-     /home/pi/minecraft_server/plugins/Geyser-Spigot/packs/` and restart the
-     Minecraft server. Bedrock gets custom allay geometry (claws swing with
-     vanilla animations).
-   - Java: set in server.properties:
-     `resource-pack=https://github.com/adrianwedd/clawdcraft/releases/download/v0.2.0/clawdcraft-java.zip`
-     `resource-pack-sha1=ae7e8c8dab57c6d73bf12c5c9b7e49e166e3b6c2`
-   - AFTER both packs are live: set `"avatarModel": "crab"` in `config.json`
-     and `sudo systemctl restart clawd`. The bridge then floats a crab
-     item_display on the (Java-invisible) allay and keeps it synced/repaired
-     (`bridge/avatar.js`; the display can't ride the allay — tp dismounts
-     passengers — so it's a sibling snapped after moves; summon NBT already
-     validated against the live server via RCON).
-   - Verify with a client on each edition; tune the Java display alignment in
-     `bridge/avatar.js` if the crab floats off-center. Fallback: rebuild with
-     `--style classic`, keep `avatarModel` at `"allay"` (v0.1.0 assets = the
-     old coral recolor; its sha1: 3fdbf151df2c2e032472305a2b23450c952ed1ac).
-   - Caveat both editions affect ALL allays (crab-shaped on Bedrock,
-     invisible on Java).
+1. **Restart into the crab (v0.2.1) and verify** — everything is STAGED
+   (2026-07-04): the v0.2.1 mcpack is in
+   `plugins/Geyser-Spigot/packs/`, server.properties points at the v0.2.1
+   release URL with sha1 `ab78dc87e3ec9164cd795d15d151c6e6eb540705`, and
+   `config.json` has `"avatarModel": "crab"`. Remaining: restart the
+   Minecraft server, then `sudo systemctl restart clawd`, then eyeball with
+   a client on each edition. NOT yet verified in-game.
+   - Both editions generate from one cube spec in
+     `packs/tools/build_packs.py` (`--style crab`, default; preview:
+     `packs/build/preview_front.png`). Wild allays are untouched: Bedrock
+     uses a name-keyed render controller (only allays named "Clawd" turn
+     crab — verify Molang `query.get_name` works through Geyser!); Java gets
+     a crab item_display scaled 1.2x to enclose/hide the carrier allay
+     (`bridge/avatar.js`; it can't ride — tp dismounts passengers — so the
+     bridge snaps it after moves; summon NBT validated over RCON already).
+   - Tune alignment/scale in `bridge/avatar.js` if the allay pokes out or
+     the crab floats off-center on Java.
+   - Fallbacks: v0.2.0 = same crab but affects all allays (Bedrock global
+     geometry + Java transparent-allay hack); v0.1.0 / `--style classic` =
+     plain coral recolor, `avatarModel` back to `"allay"`.
 2. **Roadmap features** (user-approved direction, not yet built):
    - Proximity chat: off by default, op toggle (`clawd listen on/off`),
      per-player cooldown, radius check bridge-side via

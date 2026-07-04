@@ -83,15 +83,16 @@ Bedrock `.mcpack` that make Clawd look like the coral crab mascot
 cd packs/tools && python3 build_packs.py --mc-version <your MC version>
 ```
 
-The default `--style crab` generates both editions' assets from one cube spec:
-Bedrock gets true custom allay geometry (a crab with swinging claws — vanilla
-animations still drive the bones), while Java — where vanilla packs can't
-reshape entities — gets a crab *item model* that the bridge floats on the
-allay as an `item_display` (set `"avatarModel": "crab"` in `config.json`
-**after** deploying the packs), plus a transparent allay texture that hides
-the carrier. Caveats: on both editions *all* allays are affected (crab-shaped
-on Bedrock, invisible on Java); `--style classic` instead does a plain coral
-recolor with no shape change and needs no config flag.
+The default `--style crab` generates both editions' assets from one cube spec,
+and wild allays are untouched on both. Bedrock gets true custom allay geometry
+(a crab with swinging claws — vanilla animations still drive the bones),
+applied only to allays named "Clawd" via a name-keyed render controller. Java —
+where vanilla packs can't reshape entities — gets a crab *item model* that the
+bridge floats over the allay as an `item_display` (set `"avatarModel": "crab"`
+in `config.json` **after** deploying the packs), scaled to fully enclose and
+hide the carrier; the pack overrides no vanilla assets at all. `--style
+classic` instead does a plain coral recolor of all allays with no shape change
+and needs no config flag.
 
 - Java: host `build/clawdcraft-java.zip` anywhere public, set `resource-pack=`
   and `resource-pack-sha1=` in `server.properties` (the script prints the sha1).

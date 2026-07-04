@@ -9,6 +9,7 @@
 
 const CFG = require("./config");
 const { createRcon, sleep } = require("./rcon_helper");
+const avatar = require("./avatar");
 
 const AVATAR = `@e[type=minecraft:allay,tag=${CFG.avatarTag},limit=1]`;
 
@@ -51,8 +52,10 @@ async function playEmote(rcon, emote) {
   if (e.hop) {
     // NB: minecraft:tp — bare tp is shadowed by EssentialsX
     await rcon.sendRL(`execute as ${AVATAR} at @s run minecraft:tp @s ~ ~0.3 ~`);
+    if (avatar.crab) await rcon.sendRL(avatar.skinSyncCmd);
     await sleep(200);
     await rcon.sendRL(`execute as ${AVATAR} at @s run minecraft:tp @s ~ ~-0.3 ~`);
+    if (avatar.crab) await rcon.sendRL(avatar.skinSyncCmd);
   }
 }
 

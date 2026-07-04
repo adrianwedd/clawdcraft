@@ -9,14 +9,16 @@ Produces:
 
 Two styles:
   --style crab (default)  True crab-shaped Clawd, matching the mascot art
-                          (packs/reference/clawd.webp). Bedrock: custom allay
-                          geometry (all allays become crabs). Java: entities
-                          can't be remodeled by vanilla packs, so the pack
-                          ships a crab *item model* (clawdcraft:clawd) that the
-                          bridge mounts on the allay as an item_display
-                          (config.json: "avatarModel": "crab"), plus a fully
-                          transparent allay texture so the carrier allay is
-                          hidden (NB: wild allays turn invisible on Java too).
+                          (packs/reference/clawd.webp). Wild allays are NOT
+                          affected on either edition. Bedrock: a name-keyed
+                          render controller gives crab geometry only to
+                          allays named "Clawd" (the bridge names the avatar).
+                          Java: entities can't be remodeled by vanilla packs,
+                          so the pack ships a crab *item model*
+                          (clawdcraft:clawd) that the bridge floats over the
+                          allay as an item_display (config.json:
+                          "avatarModel": "crab"), scaled to fully enclose and
+                          hide the carrier.
   --style classic         The original coral *recolor* of the vanilla allay
                           textures, no shape change.
 
@@ -47,10 +49,11 @@ CORAL = (240, 80, 64, 255)
 BLACK = (24, 20, 20, 255)
 
 MANIFEST_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
-BEDROCK_ALLAY_URL = (
-    "https://raw.githubusercontent.com/Mojang/bedrock-samples/main/"
-    "resource_pack/textures/entity/allay/allay.png"
+BEDROCK_SAMPLES = (
+    "https://raw.githubusercontent.com/Mojang/bedrock-samples/main/resource_pack/"
 )
+BEDROCK_ALLAY_URL = BEDROCK_SAMPLES + "textures/entity/allay/allay.png"
+BEDROCK_ALLAY_ENTITY_URL = BEDROCK_SAMPLES + "entity/allay.entity.json"
 
 ROOT = Path(__file__).resolve().parent.parent  # packs/
 BUILD = ROOT / "build"
@@ -132,8 +135,50 @@ def paint_crab_texture() -> bytes:
     return buf.getvalue()
 
 
+def bedrock_entity_def() -> str:
+    """Vanilla allay.entity.json plus a name-keyed crab variant.
+
+    Only entities named "Clawd" (the bridge summons the avatar with
+    CustomName:"Clawd") render with the crab geometry/texture; every other
+    allay stays fully vanilla.
+    """
+    cache_file = CACHE / "allay.entity.json"
+    if not cache_file.exists():
+        CACHE.mkdir(parents=True, exist_ok=True)
+        cache_file.write_bytes(fetch(BEDROCK_ALLAY_ENTITY_URL))
+    ent = json.loads(cache_file.read_text())
+    desc = ent["minecraft:client_entity"]["description"]
+    desc["geometry"]["crab"] = "geometry.clawd"
+    desc["textures"]["crab"] = "textures/entity/clawd"
+    desc["render_controllers"] = ["controller.render.clawd_allay"]
+    return json.dumps(ent, indent=2)
+
+
+def bedrock_render_controller() -> str:
+    """Vanilla allay rendering, except named-Clawd entities get the crab."""
+    is_clawd = "query.get_name == 'Clawd' ? 1 : 0"
+    return json.dumps(
+        {
+            "format_version": "1.8.0",
+            "render_controllers": {
+                "controller.render.clawd_allay": {
+                    "arrays": {
+                        "geometries": {"array.geo": ["Geometry.default", "Geometry.crab"]},
+                        "textures": {"array.skin": ["Texture.default", "Texture.crab"]},
+                    },
+                    "geometry": f"array.geo[{is_clawd}]",
+                    "materials": [{"*": "Material.default"}],
+                    "textures": [f"array.skin[{is_clawd}]"],
+                    "ignore_lighting": True,
+                }
+            },
+        },
+        indent=2,
+    )
+
+
 def crab_geo_bedrock() -> str:
-    """geometry.allay replacement: same rig, crab cubes, 64x64 texture."""
+    """geometry.clawd: the vanilla allay rig with crab cubes, 64x64 texture."""
     bones = []
     for name, parent, pivot in BEDROCK_BONES:
         bone = {"name": name, "pivot": pivot}
@@ -153,7 +198,7 @@ def crab_geo_bedrock() -> str:
             "minecraft:geometry": [
                 {
                     "description": {
-                        "identifier": "geometry.allay",
+                        "identifier": "geometry.clawd",
                         "texture_width": TEX_SIZE,
                         "texture_height": TEX_SIZE,
                         "visible_bounds_width": 3,
@@ -193,12 +238,6 @@ def crab_java_model() -> str:
         },
         indent=2,
     )
-
-
-def transparent_png(size: int) -> bytes:
-    buf = io.BytesIO()
-    Image.new("RGBA", (size, size), (0, 0, 0, 0)).save(buf, "PNG")
-    return buf.getvalue()
 
 
 def preview_front(scale: int = 12) -> None:
@@ -300,13 +339,9 @@ def build_java(mc_version: str | None, style: str) -> None:
             ),
         )
         if style == "crab":
-            # Hide the carrier allay; the crab is an item_display the bridge
-            # mounts on it ("avatarModel": "crab" in config.json).
-            allay_img = Image.open(io.BytesIO(vanilla_allay))
-            z.writestr(
-                "assets/minecraft/textures/entity/allay/allay.png",
-                transparent_png(max(allay_img.size)),
-            )
+            # The crab is an item_display the bridge floats over the allay
+            # ("avatarModel": "crab" in config.json), scaled to fully enclose
+            # it — no vanilla asset overrides, wild allays stay untouched.
             z.writestr(
                 "assets/clawdcraft/items/clawd.json",
                 json.dumps({"model": {"type": "minecraft:model", "model": "clawdcraft:item/clawd"}}, indent=2),
@@ -332,7 +367,7 @@ def build_bedrock(style: str) -> None:
             "name": "ClawdCraft",
             "description": "Clawd! (crab allay)" if style == "crab" else "Clawd! (allay reskin)",
             "uuid": str(uuid.uuid4()),
-            "version": [2, 0, 0] if style == "crab" else [1, 0, 0],
+            "version": [2, 1, 0] if style == "crab" else [1, 0, 0],
             "min_engine_version": [1, 20, 0],
         },
         "modules": [
@@ -342,8 +377,10 @@ def build_bedrock(style: str) -> None:
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("manifest.json", json.dumps(manifest, indent=2))
         if style == "crab":
-            z.writestr("models/entity/allay.geo.json", crab_geo_bedrock())
-            z.writestr("textures/entity/allay/allay.png", paint_crab_texture())
+            z.writestr("entity/allay.entity.json", bedrock_entity_def())
+            z.writestr("render_controllers/clawd.render_controllers.json", bedrock_render_controller())
+            z.writestr("models/entity/clawd.geo.json", crab_geo_bedrock())
+            z.writestr("textures/entity/clawd.png", paint_crab_texture())
         else:
             z.writestr("textures/entity/allay/allay.png", clawdify(fetch(BEDROCK_ALLAY_URL)))
     print(f"  wrote {out}")
