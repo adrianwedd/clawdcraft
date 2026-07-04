@@ -10,6 +10,7 @@
   "claudeBin": "claude",
   "model": "claude-sonnet-5",
   "avatarTag": "clawd",
+  "avatarModel": "allay",
 
   "companion": {
     "enabled": false,

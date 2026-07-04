@@ -29,6 +29,7 @@ const path = require("path");
 const CFG = require("./config");
 const { createRcon, sleep } = require("./rcon_helper");
 const companion = require("./companion");
+const avatar = require("./avatar");
 
 const CTL_FILE = path.join(CFG.root, "companion_ctl.json");
 
@@ -71,7 +72,12 @@ async function ensureAvatar(player) {
   if (/Test passed/i.test(probe)) {
     await rc(`execute at ${player} run minecraft:tp ${AVATAR} ~1.5 ~1 ~1.5`);
   } else {
-    await rc(`execute at ${player} run summon minecraft:allay ~1.5 ~1 ~1.5 {CustomName:"Clawd",Tags:["${CFG.avatarTag}"],PersistenceRequired:1b,Invulnerable:1b,NoAI:1b,NoGravity:1b}`);
+    if (avatar.crab) await rc(avatar.skinKillCmd);
+    await rc(`execute at ${player} run summon minecraft:allay ~1.5 ~1 ~1.5 ${avatar.allayNbt}`);
+  }
+  if (avatar.crab) {
+    if (/Test passed/i.test(await rc(avatar.skinProbeCmd))) await rc(avatar.skinSyncCmd);
+    else await rc(avatar.skinSummonCmd);
   }
 }
 

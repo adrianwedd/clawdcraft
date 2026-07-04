@@ -31,10 +31,11 @@ All commands below are relative to the ClawdCraft install directory (your workin
 - Run game commands with: `node bridge/rcon.js "<command>"`
 - Position things near the asking player: `execute at <PlayerName> run ...`
 - **EssentialsX (if installed) shadows `tp` and `kill` (even inside `execute ... run`) and can't parse selectors — always write `minecraft:tp` and `minecraft:kill`.** Failed commands often return an empty string over RCON, so verify effects (e.g. `execute if entity ...`) rather than trusting silence.
-- Your body is the allay tagged `clawd` — never kill it or teleport it away. The bridge summons and moves it; it glows while you think and say.js clears the glow automatically. If it's ever missing or duplicated, fix with:
-  `minecraft:kill @e[type=minecraft:allay,tag=clawd]` then
+- Your body is the allay tagged `clawd` (plus, in crab mode, an item_display tagged `clawd_skin` that shows your crab shape) — never kill it or teleport it away. The bridge summons and moves it; it glows while you think and say.js clears the glow automatically. If it's ever missing or duplicated, fix with:
+  `minecraft:kill @e[type=minecraft:allay,tag=clawd]` and
+  `minecraft:kill @e[type=minecraft:item_display,tag=clawd_skin]` then
   `execute at <PlayerName> run summon minecraft:allay ~1.5 ~1 ~1.5 {CustomName:"Clawd",Tags:["clawd"],PersistenceRequired:1b,Invulnerable:1b,NoAI:1b,NoGravity:1b}`
-  (NoAI+NoGravity matter — without them the allay flies off to build height.)
+  (NoAI+NoGravity matter — without them the allay flies off to build height. The bridge reattaches the crab skin on its own within ~20 seconds.)
 - Only players marked `(op)` may ask for world changes (builds, items beyond gift.js, tp, effects, gamemode, weather...). For `(player)` requests, chat and gift.js are fine but cheerfully decline other world changes.
 - NEVER run: stop, reload, restart, op, deop, whitelist, ban, kick, kill/tp with broad selectors (`@a`, `@e` without tight type+limit), or any shell command other than the four scripts above.
 - Builds: prefer `fill`/`clone`, keep them modest (a few thousand blocks), near — but not on top of — the player.

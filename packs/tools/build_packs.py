@@ -1,19 +1,33 @@
 #!/usr/bin/env python3
-"""Build ClawdCraft resource packs: reskin the allay as Clawd (coral crab palette).
+"""Build ClawdCraft resource packs: make the allay look like Clawd, the coral crab.
 
 Produces:
   build/clawdcraft-java.zip       Java resource pack (host it; set resource-pack= and
                                  resource-pack-sha1= in server.properties)
   build/clawdcraft-bedrock.mcpack Bedrock pack (drop into plugins/Geyser-Spigot/packs/)
+  build/preview_front.png         front-view render of the crab spec (sanity check)
+
+Two styles:
+  --style crab (default)  True crab-shaped Clawd, matching the mascot art
+                          (packs/reference/clawd.webp). Bedrock: custom allay
+                          geometry (all allays become crabs). Java: entities
+                          can't be remodeled by vanilla packs, so the pack
+                          ships a crab *item model* (clawdcraft:clawd) that the
+                          bridge mounts on the allay as an item_display
+                          (config.json: "avatarModel": "crab"), plus a fully
+                          transparent allay texture so the carrier allay is
+                          hidden (NB: wild allays turn invisible on Java too).
+  --style classic         The original coral *recolor* of the vanilla allay
+                          textures, no shape change.
+
+Both editions' crab assets are generated from ONE cube spec below (the code
+equivalent of a shared Blockbench project), sharing one painted texture.
 
 Usage:
-  python3 build_packs.py [--mc-version 1.21.11]
+  python3 build_packs.py [--mc-version 1.21.11] [--style crab|classic]
 
-The Java allay texture is extracted from the official Mojang client jar (downloaded
-once into build/cache/). The Bedrock texture comes from Mojang/bedrock-samples on
-GitHub (the two editions use different UV layouts, so each needs its own source).
-The pack_format for the Java pack is read from the client jar's version.json, so it
-always matches the targeted Minecraft version.
+The Java pack_format (and, for --style classic, the vanilla allay texture) is
+read from the official Mojang client jar, downloaded once into build/cache/.
 """
 
 import argparse
@@ -29,7 +43,8 @@ from pathlib import Path
 from PIL import Image
 
 # Clawd palette (from the reference mascot art): coral body, black eyes.
-CORAL = (240, 80, 64)
+CORAL = (240, 80, 64, 255)
+BLACK = (24, 20, 20, 255)
 
 MANIFEST_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 BEDROCK_ALLAY_URL = (
@@ -40,6 +55,177 @@ BEDROCK_ALLAY_URL = (
 ROOT = Path(__file__).resolve().parent.parent  # packs/
 BUILD = ROOT / "build"
 CACHE = BUILD / "cache"
+
+# ─── The crab, as boxes ───────────────────────────────────────────────────────
+# Proportions traced from packs/reference/clawd.webp (a 400x400 pixel-art crab:
+# body with two square eyes, one stubby claw each side, four legs). Coordinates
+# are entity-space model pixels (16 px = 1 block, y up, front = north = -z),
+# origin at the entity position on the ground.
+#
+# Each cube: (bedrock bone, origin [x,y,z], size [w,h,d], box-UV corner [u,v]).
+# Box-UV footprint is 2*(w+d) wide by (h+d) tall; corners below are packed into
+# a 64x64 texture shared verbatim by both editions.
+TEX_SIZE = 64
+CUBES = [
+    ("body",      "body",      (-6, 3, -4),     (12, 9, 8), (0, 0)),
+    ("claw_l",    "left_arm",  (6, 6, -1.5),    (3, 3, 3),  (0, 20)),
+    ("claw_r",    "right_arm", (-9, 6, -1.5),   (3, 3, 3),  (16, 20)),
+    ("leg_1",     "body",      (-6, 0, -1),     (2, 3, 2),  (32, 20)),
+    ("leg_2",     "body",      (-3, 0, -1),     (2, 3, 2),  (40, 20)),
+    ("leg_3",     "body",      (1, 0, -1),      (2, 3, 2),  (48, 20)),
+    ("leg_4",     "body",      (4, 0, -1),      (2, 3, 2),  (56, 20)),
+]
+# Eyes: 2x2 px, high on the body face, symmetric — painted on BOTH the north
+# and south face regions so the crab has a face whichever way a renderer (or
+# an item_display billboard) considers "front".
+EYES = [(2, 1), (8, 1)]  # body-face-relative (x from face left, y from face top)
+
+# Bedrock rig: mirror the vanilla allay bone tree exactly (names AND parents)
+# so vanilla hover/dance/look animations keep working; only the cubes change.
+# Wings/look_at/rightItem stay as empty bones; claws live in the arm bones so
+# they swing with the vanilla arm animation.
+BEDROCK_BONES = [
+    ("root", None, [0, 1, 0]),
+    ("head", "root", [0, 12, 0]),
+    ("look_at", "head", [0, 12, 0]),
+    ("body", "root", [0, 3, 0]),
+    ("rightItem", "body", [0, 0, -2]),
+    ("right_arm", "body", [-6, 9, 0]),
+    ("left_arm", "body", [6, 9, 0]),
+    ("left_wing", "body", [0.5, 4, 1]),
+    ("right_wing", "body", [-0.5, 4, 1]),
+]
+
+
+def box_uv_faces(u0, v0, w, h, d):
+    """Face -> (x1, y1, x2, y2) texture rects for a standard box-UV layout."""
+    return {
+        "up": (u0 + d, v0, u0 + d + w, v0 + d),
+        "down": (u0 + d + w, v0, u0 + d + 2 * w, v0 + d),
+        "east": (u0, v0 + d, u0 + d, v0 + d + h),
+        "north": (u0 + d, v0 + d, u0 + d + w, v0 + d + h),
+        "west": (u0 + d + w, v0 + d, u0 + d + w + d, v0 + d + h),
+        "south": (u0 + 2 * d + w, v0 + d, u0 + 2 * d + 2 * w, v0 + d + h),
+    }
+
+
+def paint_crab_texture() -> bytes:
+    """One 64x64 texture for both editions: coral boxes, black eyes front+back."""
+    img = Image.new("RGBA", (TEX_SIZE, TEX_SIZE), (0, 0, 0, 0))
+    px = img.load()
+    for _, _, _, (w, h, d), (u0, v0) in CUBES:
+        w, h, d = int(w), int(h), int(d)
+        for face, (x1, y1, x2, y2) in box_uv_faces(u0, v0, w, h, d).items():
+            for y in range(y1, y2):
+                for x in range(x1, x2):
+                    px[x, y] = CORAL
+    # Eyes on the body's north and south face regions.
+    _, _, _, (bw, bh, bd), (bu, bv) = CUBES[0]
+    faces = box_uv_faces(bu, bv, bw, bh, bd)
+    for fx1, fy1, _, _ in (faces["north"], faces["south"]):
+        for ex, ey in EYES:
+            for dy in range(2):
+                for dx in range(2):
+                    px[fx1 + ex + dx, fy1 + ey + dy] = BLACK
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    return buf.getvalue()
+
+
+def crab_geo_bedrock() -> str:
+    """geometry.allay replacement: same rig, crab cubes, 64x64 texture."""
+    bones = []
+    for name, parent, pivot in BEDROCK_BONES:
+        bone = {"name": name, "pivot": pivot}
+        if parent:
+            bone["parent"] = parent
+        cubes = [
+            {"origin": list(origin), "size": list(size), "uv": list(uv)}
+            for _, b, origin, size, uv in CUBES
+            if b == name
+        ]
+        if cubes:
+            bone["cubes"] = cubes
+        bones.append(bone)
+    return json.dumps(
+        {
+            "format_version": "1.12.0",
+            "minecraft:geometry": [
+                {
+                    "description": {
+                        "identifier": "geometry.allay",
+                        "texture_width": TEX_SIZE,
+                        "texture_height": TEX_SIZE,
+                        "visible_bounds_width": 3,
+                        "visible_bounds_height": 2,
+                        "visible_bounds_offset": [0, 0.5, 0],
+                    },
+                    "bones": bones,
+                }
+            ],
+        },
+        indent=2,
+    )
+
+
+def crab_java_model() -> str:
+    """Free-form Java item model (for the item_display the bridge mounts)."""
+    elements = []
+    for _, _, (x, y, z), (w, h, d), (u0, v0) in CUBES:
+        # entity space -> java model space: center at (8, _, 8), floor at y=2
+        # so the crab hangs centered-ish on the display entity's position.
+        f = box_uv_faces(u0, v0, int(w), int(h), int(d))
+        elements.append(
+            {
+                "from": [x + 8, y + 2, z + 8],
+                "to": [x + w + 8, y + h + 2, z + d + 8],
+                "faces": {
+                    face: {"uv": list(f[face]), "texture": "#0"}
+                    for face in ("north", "south", "east", "west", "up", "down")
+                },
+            }
+        )
+    return json.dumps(
+        {
+            "texture_size": [TEX_SIZE, TEX_SIZE],
+            "textures": {"0": "clawdcraft:item/clawd", "particle": "clawdcraft:item/clawd"},
+            "elements": elements,
+        },
+        indent=2,
+    )
+
+
+def transparent_png(size: int) -> bytes:
+    buf = io.BytesIO()
+    Image.new("RGBA", (size, size), (0, 0, 0, 0)).save(buf, "PNG")
+    return buf.getvalue()
+
+
+def preview_front(scale: int = 12) -> None:
+    """Orthographic front view of the cube spec, for eyeballing vs the mascot."""
+    xs = [c[2][0] for c in CUBES] + [c[2][0] + c[3][0] for c in CUBES]
+    ys = [c[2][1] for c in CUBES] + [c[2][1] + c[3][1] for c in CUBES]
+    w, h = (max(xs) - min(xs)), (max(ys) - min(ys))
+    img = Image.new("RGBA", (int(w * scale) + 2 * scale, int(h * scale) + 2 * scale), (255, 255, 255, 255))
+    px = img.load()
+
+    def rect(x1, y1, x2, y2, color):
+        for yy in range(int(y1 * scale), int(y2 * scale)):
+            for xx in range(int(x1 * scale), int(x2 * scale)):
+                if 0 <= xx < img.width and 0 <= yy < img.height:
+                    px[xx, yy] = color
+
+    ox, oy = -min(xs) + 1, max(ys) + 1  # entity -> image coords (y flips)
+    for _, _, (x, y, _), (cw, ch, _), _ in CUBES:
+        rect(x + ox, oy - y - ch, x + cw + ox, oy - y, CORAL)
+    # eyes (body front)
+    bx, by = CUBES[0][2][0], CUBES[0][2][1]
+    bh = CUBES[0][3][1]
+    for ex, ey in EYES:
+        rect(bx + ex + ox, oy - (by + bh) + ey, bx + ex + 2 + ox, oy - (by + bh) + ey + 2, BLACK)
+    out = BUILD / "preview_front.png"
+    img.save(out)
+    print(f"  wrote {out} (front-view sanity check)")
 
 
 def fetch(url: str) -> bytes:
@@ -73,8 +259,8 @@ def clawdify(png_bytes: bytes) -> bytes:
     return buf.getvalue()
 
 
-def build_java(mc_version: str | None) -> None:
-    print("Java pack:")
+def java_pack_meta(mc_version: str | None) -> tuple[int, bytes]:
+    """Returns (pack_format, vanilla allay png) from the official client jar."""
     manifest = json.loads(fetch(MANIFEST_URL))
     if mc_version is None:
         mc_version = manifest["latest"]["release"]
@@ -98,17 +284,37 @@ def build_java(mc_version: str | None) -> None:
         # "resource_minor": M} in newer ones
         pack_format = pv["resource"] if "resource" in pv else pv["resource_major"]
     print(f"  pack_format {pack_format} (from client version.json)")
+    return pack_format, allay
 
+
+def build_java(mc_version: str | None, style: str) -> None:
+    print("Java pack:")
+    pack_format, vanilla_allay = java_pack_meta(mc_version)
     out = BUILD / "clawdcraft-java.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(
             "pack.mcmeta",
             json.dumps(
-                {"pack": {"pack_format": pack_format, "description": "Clawd! (ClawdCraft allay reskin)"}},
+                {"pack": {"pack_format": pack_format, "description": "Clawd! (ClawdCraft)"}},
                 indent=2,
             ),
         )
-        z.writestr("assets/minecraft/textures/entity/allay/allay.png", clawdify(allay))
+        if style == "crab":
+            # Hide the carrier allay; the crab is an item_display the bridge
+            # mounts on it ("avatarModel": "crab" in config.json).
+            allay_img = Image.open(io.BytesIO(vanilla_allay))
+            z.writestr(
+                "assets/minecraft/textures/entity/allay/allay.png",
+                transparent_png(max(allay_img.size)),
+            )
+            z.writestr(
+                "assets/clawdcraft/items/clawd.json",
+                json.dumps({"model": {"type": "minecraft:model", "model": "clawdcraft:item/clawd"}}, indent=2),
+            )
+            z.writestr("assets/clawdcraft/models/item/clawd.json", crab_java_model())
+            z.writestr("assets/clawdcraft/textures/item/clawd.png", paint_crab_texture())
+        else:
+            z.writestr("assets/minecraft/textures/entity/allay/allay.png", clawdify(vanilla_allay))
     sha1 = hashlib.sha1(out.read_bytes()).hexdigest()
     print(f"  wrote {out}")
     print(f"  sha1: {sha1}")
@@ -117,17 +323,16 @@ def build_java(mc_version: str | None) -> None:
     print(f"    resource-pack-sha1={sha1}")
 
 
-def build_bedrock() -> None:
+def build_bedrock(style: str) -> None:
     print("Bedrock pack:")
-    allay = fetch(BEDROCK_ALLAY_URL)
     out = BUILD / "clawdcraft-bedrock.mcpack"
     manifest = {
         "format_version": 2,
         "header": {
             "name": "ClawdCraft",
-            "description": "Clawd! (allay reskin)",
+            "description": "Clawd! (crab allay)" if style == "crab" else "Clawd! (allay reskin)",
             "uuid": str(uuid.uuid4()),
-            "version": [1, 0, 0],
+            "version": [2, 0, 0] if style == "crab" else [1, 0, 0],
             "min_engine_version": [1, 20, 0],
         },
         "modules": [
@@ -136,7 +341,11 @@ def build_bedrock() -> None:
     }
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("manifest.json", json.dumps(manifest, indent=2))
-        z.writestr("textures/entity/allay/allay.png", clawdify(allay))
+        if style == "crab":
+            z.writestr("models/entity/allay.geo.json", crab_geo_bedrock())
+            z.writestr("textures/entity/allay/allay.png", paint_crab_texture())
+        else:
+            z.writestr("textures/entity/allay/allay.png", clawdify(fetch(BEDROCK_ALLAY_URL)))
     print(f"  wrote {out}")
     print("  deploy: copy into plugins/Geyser-Spigot/packs/ and restart the server")
 
@@ -144,8 +353,11 @@ def build_bedrock() -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mc-version", default=None, help="Java MC version (default: current latest release; pin this to your server's version, e.g. 1.21.11)")
+    ap.add_argument("--style", default="crab", choices=["crab", "classic"], help="crab: true crab shape (default); classic: coral recolor of the vanilla allay")
     args = ap.parse_args()
     BUILD.mkdir(parents=True, exist_ok=True)
-    build_java(args.mc_version)
-    build_bedrock()
+    build_java(args.mc_version, args.style)
+    build_bedrock(args.style)
+    if args.style == "crab":
+        preview_front()
     print("done.")

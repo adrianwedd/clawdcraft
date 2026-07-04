@@ -29,6 +29,7 @@
 const fs = require("fs");
 const path = require("path");
 const CFG = require("./config");
+const avatar = require("./avatar");
 
 // ─── Tuning ──────────────────────────────────────────────────────────────────
 const TICK_MS = 850;          // behavior tick; each tick issues 2-6 rcon cmds
@@ -204,15 +205,27 @@ async function tick() {
   const mode = readCtl();
   if (mode === "stay") return;
 
-  if (tickNo % 20 === 1 && !passed(await rc(`execute if entity @e[type=minecraft:allay,tag=${TAG}]`))) {
-    log("avatar missing — resummoning at home");
-    await rc(`execute in ${DIM} run summon minecraft:allay ${DEPOT.home.x} ${DEPOT.home.y} ${DEPOT.home.z} {CustomName:"Clawd",Tags:["${TAG}"],PersistenceRequired:1b,Invulnerable:1b,NoAI:1b,NoGravity:1b}`);
+  if (tickNo % 20 === 1) {
+    if (!passed(await rc(`execute if entity @e[type=minecraft:allay,tag=${TAG}]`))) {
+      log("avatar missing — resummoning at home");
+      if (avatar.crab) await rc(avatar.skinKillCmd);
+      await rc(`execute in ${DIM} run summon minecraft:allay ${DEPOT.home.x} ${DEPOT.home.y} ${DEPOT.home.z} ${avatar.allayNbt}`);
+    }
+    if (avatar.crab && !passed(await rc(avatar.skinProbeCmd))) {
+      log("crab skin missing — reattaching");
+      await rc(avatar.skinSummonCmd);
+    }
   }
 
   if (mode !== "home" && state.lastTarget) {
-    if (await followTick(state.lastTarget)) { idleEntered = false; return; }
+    if (await followTick(state.lastTarget)) {
+      idleEntered = false;
+      if (avatar.crab) await rc(avatar.skinSyncCmd);
+      return;
+    }
   }
   await roamTick();
+  if (avatar.crab) await rc(avatar.skinSyncCmd);
 }
 
 function start(rcFn) {

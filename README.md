@@ -76,11 +76,22 @@ height otherwise). It glows while thinking (Java), chimes and sparkles
 (both editions), and emotes with particles/sounds/hops when it speaks.
 
 **Custom look**: `packs/tools/build_packs.py` builds a Java resource pack and a
-Bedrock `.mcpack` that reskin the allay in Clawd's coral-crab palette:
+Bedrock `.mcpack` that make Clawd look like the coral crab mascot
+(`packs/reference/clawd.webp`):
 
 ```bash
 cd packs/tools && python3 build_packs.py --mc-version <your MC version>
 ```
+
+The default `--style crab` generates both editions' assets from one cube spec:
+Bedrock gets true custom allay geometry (a crab with swinging claws — vanilla
+animations still drive the bones), while Java — where vanilla packs can't
+reshape entities — gets a crab *item model* that the bridge floats on the
+allay as an `item_display` (set `"avatarModel": "crab"` in `config.json`
+**after** deploying the packs), plus a transparent allay texture that hides
+the carrier. Caveats: on both editions *all* allays are affected (crab-shaped
+on Bedrock, invisible on Java); `--style classic` instead does a plain coral
+recolor with no shape change and needs no config flag.
 
 - Java: host `build/clawdcraft-java.zip` anywhere public, set `resource-pack=`
   and `resource-pack-sha1=` in `server.properties` (the script prints the sha1).
