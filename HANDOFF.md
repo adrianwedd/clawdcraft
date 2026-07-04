@@ -133,6 +133,20 @@ retired — don't edit it.
 - **Piped interactive rcon.js has a pre-existing race**: `rl.on("close")`
   ends the connection before pending async sends print. One-shot mode (what
   Clawd uses) is unaffected. Fix only if it ever bites.
+- **tmux 3.3a send-keys needs an attached client** — fails "no current
+  client" when nobody is attached (i.e. exactly when no human is watching;
+  worked all day only because the user was attached). Fixed in tmux 3.4;
+  until upgrade the bridge holds a permanent read-only headless client
+  (`holdClient()` in clawd.js — script(1) pty + TERM, since systemd has
+  neither). If injects fail, `tmux list-clients` first.
+- **Brain-hang incident (15:09–15:52, 2026-07-04)**: the freshly created
+  brain claude process went catatonic right after startup — pane frozen on
+  the welcome screen, keys swallowed, and send-keys produced misleading
+  secondary errors ("client is read-only", hangs) from typing into the dead
+  pty. Tell: the pane statusline timestamp stops updating. Fix:
+  `tmux kill-session -t clawd && sudo systemctl restart clawd`. paneReady's
+  "❯" check does NOT catch this (the prompt is there, the process is not).
+  Watchdog issue #7 covers detection.
 
 ## Things NOT to do
 

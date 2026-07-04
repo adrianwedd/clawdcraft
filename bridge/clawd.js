@@ -106,10 +106,26 @@ const startThinking = async () => {
 };
 
 // ─── tmux session (Clawd's brain) ────────────────────────────────────────────
+let lastTmuxErr = "";
 function tmux(...args) {
   return new Promise((resolve) =>
-    execFile("tmux", args, (err, stdout) => resolve(err ? null : stdout))
+    execFile("tmux", args, (err, stdout, stderr) => {
+      if (err) {
+        lastTmuxErr = (stderr || err.message || "").trim();
+        return resolve(null);
+      }
+      resolve(stdout);
+    })
   );
+}
+
+// Resolve the brain's pane ID. 2026-07-04: `send-keys -t clawd` intermittently
+// failed with "no current client" (suspected interaction with an attached or
+// nested client) while has-session/list-panes/capture-pane kept working — so
+// inject targets the pane ID, which succeeded even during the failure window.
+async function brainPane() {
+  const out = await tmux("list-panes", "-t", CFG.tmuxSession, "-F", "#{pane_id}");
+  return out ? out.trim().split("\n")[0] : null;
 }
 
 async function paneReady() {
@@ -133,12 +149,68 @@ async function ensureSession() {
   return (await tmux("has-session", "-t", "clawd")) !== null;
 }
 
+// tmux 3.3a's send-keys dies with "no current client" whenever the server has
+// NO attached clients (command clients don't count) — i.e. exactly when no
+// human is watching the brain. Every other subcommand we use is fine, and it
+// is fixed upstream in tmux 3.4. Until the box upgrades, the bridge holds a
+// permanent read-only headless client on the brain session so the invariant
+// "≥1 attached client" is always true. script(1) provides the pty; stty sizes
+// it to match the session's 200x50 so window-size=latest doesn't shrink the
+// brain's pane. Respawns if the session is recreated; killed on SIGTERM so
+// clean restarts don't leak (a SIGKILL leaks one harmless read-only client).
+let holder = null;
+let holderFailLogged = false;
+function holdClient() {
+  holder = spawn(
+    "script",
+    ["-qec", `stty cols 200 rows 50 2>/dev/null; exec tmux attach-session -r -t ${CFG.tmuxSession}`, "/dev/null"],
+    // systemd has no TERM and tmux attach refuses without one
+    { stdio: "ignore", env: { ...process.env, TERM: process.env.TERM || "tmux-256color" } }
+  );
+  holder.on("exit", (code) => {
+    if (code !== 0 && !holderFailLogged) {
+      holderFailLogged = true;
+      log(`holder client exited (code ${code}) — injections may fail with "no current client" until it reattaches`);
+    }
+    setTimeout(holdClient, 3000);
+  });
+}
+for (const sig of ["SIGTERM", "SIGINT"]) {
+  process.on(sig, () => {
+    holder?.removeAllListeners("exit");
+    holder?.kill();
+    process.exit(0);
+  });
+}
+
+const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
+function sendKeysPty(...args) {
+  const cmd = "tmux " + args.map(shq).join(" ");
+  return new Promise((resolve) =>
+    execFile("script", ["-qec", cmd, "/dev/null"], (err, stdout, stderr) => {
+      if (err) {
+        lastTmuxErr = (stderr || err.message || "").trim();
+        return resolve(false);
+      }
+      resolve(true);
+    })
+  );
+}
+
 async function inject(text) {
   if (!(await ensureSession())) return false;
   const clean = text.replace(/[\r\n]+/g, " ").trim();
-  if ((await tmux("send-keys", "-t", CFG.tmuxSession, "-l", clean)) === null) return false;
+  const target = (await brainPane()) || CFG.tmuxSession;
+  if (!(await sendKeysPty("send-keys", "-t", target, "-l", clean))) {
+    log(`inject failed (target ${target}): ${lastTmuxErr}`);
+    return false;
+  }
   await sleep(300);
-  return (await tmux("send-keys", "-t", CFG.tmuxSession, "Enter")) !== null;
+  if (!(await sendKeysPty("send-keys", "-t", target, "Enter"))) {
+    log(`inject failed on Enter (target ${target}): ${lastTmuxErr}`);
+    return false;
+  }
+  return true;
 }
 
 // ─── Chat handling ───────────────────────────────────────────────────────────
@@ -270,7 +342,10 @@ if (testArg !== -1) {
   handle(player, msg).then(() => { rcon?.end(); process.exit(0); });
 } else {
   log(`ClawdCraft bridge starting (tmux: ${CFG.tmuxSession}, ops: ${[...OPS].join(", ") || "none"})`);
-  ensureSession().then(() => watchLog());
+  ensureSession().then(() => {
+    holdClient();
+    watchLog();
+  });
   companion.start(rc);
   ambient.start(rc, inject).catch((e) => log(`ambient start: ${e.message}`));
 }
