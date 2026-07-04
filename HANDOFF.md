@@ -40,8 +40,18 @@ retired — don't edit it.
   reply" section; no gifts/world changes from overheard lines.
 - **Quiet logs**: skin syncs only when the avatar actually moved;
   `log_admin_commands=false` gamerule in all loaded worlds;
-  `broadcast-rcon-to-ops=false` in server.properties. The crab's display is
-  CustomName'd "Clawd" so residual feedback reads right.
+  `broadcast-rcon-to-ops=false` in server.properties — NB this one only
+  applies at server start; it was live-dead until the MC server restart at
+  15:07 on 2026-07-04 (ops saw "[Rcon: Teleported Clawd...]" spam until
+  then). The crab's display is CustomName'd "Clawd" so residual feedback
+  reads right.
+- **Selective op visibility (replaces broadcast-rcon-to-ops=true)**: with
+  `CLAWD_RCON_ECHO=1` (exported only in `session/clawd_session.sh`, so only
+  Clawd's brain), rcon.js echoes each executed command to online ops as a
+  gray italic "⚙ Clawd: <cmd>" tellraw. Movement ticks never pass through
+  rcon.js (bridge-internal connection) so ops see deliberate commands only.
+  Env var requires brain-session recreation to change — current brain has it
+  (recreated 15:09, 2026-07-04, server empty, context loss accepted).
 - **RCON denylist in code (done this session, verified live)**:
   `bridge/rcon_guard.js` enforces the prompt's "NEVER run" list on the paths
   Clawd is pre-approved for — rcon.js one-shot AND piped stdin (piped matters:

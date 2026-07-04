@@ -5,11 +5,30 @@
 // One-shot commands (and piped stdin) pass through the rcon_guard denylist —
 // that's the path Clawd is pre-approved to run. Interactive mode from a real
 // terminal is a human and is unguarded; use it for admin commands.
+//
+// Op visibility: when CLAWD_RCON_ECHO is set (exported by
+// session/clawd_session.sh, i.e. only inside Clawd's brain session), every
+// executed command is echoed to online ops as a quiet gray line. This is the
+// selective replacement for broadcast-rcon-to-ops=true: ops see what Clawd
+// deliberately runs, but not the bridge's movement ticks (companion glide,
+// skin sync, emote hops), which use the bridge's internal connection and
+// never pass through this script.
 
 const { createRcon } = require("./rcon_helper");
 const { check } = require("./rcon_guard");
+const CFG = require("./config");
 
 const rcon = createRcon();
+
+async function echoToOps(cmd) {
+  if (!process.env.CLAWD_RCON_ECHO) return;
+  const shown = cmd.length > 100 ? cmd.slice(0, 100) + "…" : cmd;
+  const payload = JSON.stringify({ text: `⚙ Clawd: ${shown}`, color: "dark_gray", italic: true });
+  for (const op of CFG.ops) {
+    // name= must be quoted: Bedrock (Floodgate) names start with a dot.
+    await rcon.send(`tellraw @a[name=${JSON.stringify(String(op))},limit=1] ${payload}`).catch(() => {});
+  }
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -32,6 +51,7 @@ async function main() {
       try {
         const response = await rcon.send(cmd);
         if (response) console.log(response);
+        await echoToOps(cmd);
       } catch (e) {
         console.error("Error:", e.message);
       }
@@ -51,6 +71,7 @@ async function main() {
     await rcon.connect();
     const response = await rcon.send(cmd);
     if (response) console.log(response);
+    await echoToOps(cmd);
     rcon.end();
   }
 }

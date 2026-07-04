@@ -10,6 +10,11 @@ cd "$ROOT"
 CLAUDE_BIN=$(node -e "console.log(require('$ROOT/bridge/config').claudeBin)")
 MODEL=$(node -e "console.log(require('$ROOT/bridge/config').model)")
 
+# Echo Clawd's rcon.js commands to online ops as a quiet gray line (selective
+# replacement for broadcast-rcon-to-ops, which would also spam movement ticks).
+# Only exported here, so human terminals and maintenance sessions don't echo.
+export CLAWD_RCON_ECHO=1
+
 exec "$CLAUDE_BIN" \
   --model "$MODEL" \
   --allowedTools \
