@@ -12,6 +12,14 @@
   "avatarTag": "clawd",
   "avatarModel": "allay",
 
+  "chatBudget": {
+    "enabled": true,
+    "cooldownMs": 15000,
+    "maxPerHour": 30,
+    "maxPerDay": 150,
+    "opsExempt": true
+  },
+
   "proximity": {
     "enabled": false,
     "radius": 12,

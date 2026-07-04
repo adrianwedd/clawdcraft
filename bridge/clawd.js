@@ -33,6 +33,10 @@ const { createRcon, sleep } = require("./rcon_helper");
 const companion = require("./companion");
 const avatar = require("./avatar");
 const ambient = require("./ambient");
+const { makeBudget } = require("./chat_budget");
+
+// Per-player budget for brain-bound chat (issue #1). Fast paths stay free.
+const chatBudget = makeBudget(CFG.chatBudget);
 
 const CTL_FILE = path.join(CFG.root, "companion_ctl.json");
 
@@ -271,10 +275,24 @@ async function handle(player, message) {
     return;
   }
 
+  const budget = chatBudget.check(player, role);
+  if (!budget.ok) {
+    log(`over budget (${player}: ${budget.reason}) — canned reply, no brain turn`);
+    if (chatBudget.shouldSayDenial(player)) {
+      await say(
+        budget.reason === "cooldown"
+          ? "*catches breath* Whew, one at a time! Ask me again in a few seconds."
+          : "*yawns adorably* My little brain needs a rest — ask me again in a while!"
+      );
+    }
+    return;
+  }
+
   await ensureAvatar(player);
   await startThinking();
   await rc(`title @a actionbar {"text":"✦ Clawd is thinking...","color":"gray","italic":true}`);
   const ok = await inject(`[MC chat] <${player}> (${role}): ${prompt}`);
+  if (ok) chatBudget.spend(player);
   if (!ok) {
     await rc(`effect clear ${AVATAR} minecraft:glowing`);
     await say("*rubs head* My brain isn't awake right now. Tell an operator to check the clawd service!");
