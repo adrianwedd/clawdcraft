@@ -2,7 +2,7 @@
 
 Context for the next Claude session picking this up. The live, working install
 is `/home/pi/minecraft_server/bot/` (hardcoded paths, running now as
-`clawd.service`). This repo (`~/mineclawd/`) is the **generalized, shareable
+`clawd.service`). This repo (`~/clawdcraft/`) is the **generalized, shareable
 export** of that system — scaffolded and pack-tooling verified, but not yet the
 running copy and not yet on GitHub.
 
@@ -39,14 +39,14 @@ running copy and not yet on GitHub.
    Nairdaaa, .Nairdaaa, .Obi000000; log file
    `/home/pi/minecraft_server/logs/latest.log`), point
    `/etc/systemd/system/clawd.service` ExecStart at
-   `/home/pi/mineclawd/bridge/clawd.js` with WorkingDirectory=/home/pi/mineclawd,
+   `/home/pi/clawdcraft/bridge/clawd.js` with WorkingDirectory=/home/pi/clawdcraft,
    `daemon-reload`, kill the old tmux session, restart. Verify with
    `node bridge/clawd.js --test "TestPlayer: clawd hello"`.
 2. **Deploy the packs** (needs a restart window + a human with a client):
-   - Bedrock: `cp packs/build/mineclawd-bedrock.mcpack
+   - Bedrock: `cp packs/build/clawdcraft-bedrock.mcpack
      /home/pi/minecraft_server/plugins/Geyser-Spigot/packs/` and restart.
      Have a Bedrock player confirm the allay turned coral.
-   - Java: host `packs/build/mineclawd-java.zip` at a public URL (simplest:
+   - Java: host `packs/build/clawdcraft-java.zip` at a public URL (simplest:
      GitHub release once pushed; or the existing dashboard's static dir), set
      `resource-pack=` + `resource-pack-sha1=` (sha1 printed by build script)
      in server.properties, restart, confirm on a Java client.

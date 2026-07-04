@@ -1,4 +1,4 @@
-# MineClawd 🦀
+# ClawdCraft 🦀
 
 Put **Claude Code inside your Minecraft server** as *Clawd* — a friendly in-game
 creature players talk to in chat. Clawd answers, remembers players, hands out
@@ -36,7 +36,7 @@ logs/latest.log  ──tail──►  bridge/clawd.js  ──tmux send-keys─�
 ## Install
 
 ```bash
-git clone https://github.com/you/mineclawd && cd mineclawd
+git clone https://github.com/you/clawdcraft && cd clawdcraft
 cd bridge && npm install && cd ..
 cp config.example.json config.json   # then edit: rcon password, log path, ops
 node bridge/clawd.js                 # run in foreground to try it
@@ -79,9 +79,9 @@ Bedrock `.mcpack` that reskin the allay in Clawd's coral-crab palette:
 cd packs/tools && python3 build_packs.py --mc-version <your MC version>
 ```
 
-- Java: host `build/mineclawd-java.zip` anywhere public, set `resource-pack=`
+- Java: host `build/clawdcraft-java.zip` anywhere public, set `resource-pack=`
   and `resource-pack-sha1=` in `server.properties` (the script prints the sha1).
-- Bedrock: drop `build/mineclawd-bedrock.mcpack` into
+- Bedrock: drop `build/clawdcraft-bedrock.mcpack` into
   `plugins/Geyser-Spigot/packs/`. Restart the server after either change.
 
 ## Safety model

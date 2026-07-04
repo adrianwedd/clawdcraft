@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Build MineClawd resource packs: reskin the allay as Clawd (coral crab palette).
+"""Build ClawdCraft resource packs: reskin the allay as Clawd (coral crab palette).
 
 Produces:
-  build/mineclawd-java.zip       Java resource pack (host it; set resource-pack= and
+  build/clawdcraft-java.zip       Java resource pack (host it; set resource-pack= and
                                  resource-pack-sha1= in server.properties)
-  build/mineclawd-bedrock.mcpack Bedrock pack (drop into plugins/Geyser-Spigot/packs/)
+  build/clawdcraft-bedrock.mcpack Bedrock pack (drop into plugins/Geyser-Spigot/packs/)
 
 Usage:
   python3 build_packs.py [--mc-version 1.21.11]
@@ -99,12 +99,12 @@ def build_java(mc_version: str | None) -> None:
         pack_format = pv["resource"] if "resource" in pv else pv["resource_major"]
     print(f"  pack_format {pack_format} (from client version.json)")
 
-    out = BUILD / "mineclawd-java.zip"
+    out = BUILD / "clawdcraft-java.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(
             "pack.mcmeta",
             json.dumps(
-                {"pack": {"pack_format": pack_format, "description": "Clawd! (MineClawd allay reskin)"}},
+                {"pack": {"pack_format": pack_format, "description": "Clawd! (ClawdCraft allay reskin)"}},
                 indent=2,
             ),
         )
@@ -113,18 +113,18 @@ def build_java(mc_version: str | None) -> None:
     print(f"  wrote {out}")
     print(f"  sha1: {sha1}")
     print("  server.properties:")
-    print("    resource-pack=<public URL of mineclawd-java.zip>")
+    print("    resource-pack=<public URL of clawdcraft-java.zip>")
     print(f"    resource-pack-sha1={sha1}")
 
 
 def build_bedrock() -> None:
     print("Bedrock pack:")
     allay = fetch(BEDROCK_ALLAY_URL)
-    out = BUILD / "mineclawd-bedrock.mcpack"
+    out = BUILD / "clawdcraft-bedrock.mcpack"
     manifest = {
         "format_version": 2,
         "header": {
-            "name": "MineClawd",
+            "name": "ClawdCraft",
             "description": "Clawd! (allay reskin)",
             "uuid": str(uuid.uuid4()),
             "version": [1, 0, 0],

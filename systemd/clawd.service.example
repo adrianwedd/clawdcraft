@@ -1,5 +1,5 @@
 [Unit]
-Description=MineClawd - Claude Code in-game chat bridge
+Description=ClawdCraft - Claude Code in-game chat bridge
 After=network-online.target
 # If your Minecraft server is a systemd unit, uncomment and adjust:
 #After=network-online.target minecraft.service
@@ -9,8 +9,8 @@ After=network-online.target
 Type=simple
 # Adjust user and paths to your install:
 User=you
-WorkingDirectory=/home/you/mineclawd
-ExecStart=/usr/bin/node /home/you/mineclawd/bridge/clawd.js
+WorkingDirectory=/home/you/clawdcraft
+ExecStart=/usr/bin/node /home/you/clawdcraft/bridge/clawd.js
 Restart=always
 RestartSec=10
 Environment=HOME=/home/you

@@ -1,4 +1,4 @@
-// Loads MineClawd configuration.
+// Loads ClawdCraft configuration.
 // Looks for, in order: $CLAWD_CONFIG, <repo root>/config.json.
 // Copy config.example.json to config.json and edit it for your server.
 
@@ -13,7 +13,7 @@ const candidates = [
 const file = candidates.find((f) => fs.existsSync(f));
 if (!file) {
   console.error(
-    "MineClawd: no config found. Copy config.example.json to config.json in the repo root and edit it."
+    "ClawdCraft: no config found. Copy config.example.json to config.json in the repo root and edit it."
   );
   process.exit(1);
 }
@@ -22,7 +22,7 @@ const cfg = JSON.parse(fs.readFileSync(file, "utf8"));
 
 for (const key of ["rcon", "logFile"]) {
   if (!cfg[key]) {
-    console.error(`MineClawd: config is missing required key "${key}" (${file})`);
+    console.error(`ClawdCraft: config is missing required key "${key}" (${file})`);
     process.exit(1);
   }
 }

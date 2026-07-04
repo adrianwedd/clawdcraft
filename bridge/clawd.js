@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// clawd.js — MineClawd bridge: Claude Code living in your Minecraft server.
+// clawd.js — ClawdCraft bridge: Claude Code living in your Minecraft server.
 //
 // Watches server chat for messages addressed to "clawd" and types them into a
 // persistent *interactive* Claude Code session running in tmux (auto-created
@@ -180,6 +180,6 @@ if (testArg !== -1) {
   if (!player) { console.error('usage: node clawd.js --test "PlayerName: clawd hello"'); process.exit(1); }
   handle(player, msg).then(() => { rcon?.end(); process.exit(0); });
 } else {
-  log(`MineClawd bridge starting (tmux: ${CFG.tmuxSession}, ops: ${[...OPS].join(", ") || "none"})`);
+  log(`ClawdCraft bridge starting (tmux: ${CFG.tmuxSession}, ops: ${[...OPS].join(", ") || "none"})`);
   ensureSession().then(() => watchLog());
 }
