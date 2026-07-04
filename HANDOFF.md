@@ -1,7 +1,9 @@
-# HANDOFF — state as of 2026-07-04 (end of session)
+# HANDOFF — state as of 2026-07-04 (end of second session)
 
-Context for the next Claude session picking this up. **This repo is the live
-install**: `clawd.service` runs `/home/pi/clawdcraft/bridge/clawd.js` with
+Context for the next Claude session picking this up. **Read STRATEGY.md
+first** — executor doctrine: file authority, invariants, escalation triggers,
+verification order. **This repo is the live install**: `clawd.service` runs
+`/home/pi/clawdcraft/bridge/clawd.js` with
 `WorkingDirectory=/home/pi/clawdcraft`; Clawd's brain tmux session launches
 from `session/clawd_session.sh` with repo-relative pre-approved tools.
 
@@ -40,27 +42,45 @@ retired — don't edit it.
   `log_admin_commands=false` gamerule in all loaded worlds;
   `broadcast-rcon-to-ops=false` in server.properties. The crab's display is
   CustomName'd "Clawd" so residual feedback reads right.
+- **RCON denylist in code (done this session, verified live)**:
+  `bridge/rcon_guard.js` enforces the prompt's "NEVER run" list on the paths
+  Clawd is pre-approved for — rcon.js one-shot AND piped stdin (piped matters:
+  `--allowedTools "Bash(node bridge/rcon.js:*)"` would pre-approve
+  `node bridge/rcon.js <<< stop`). Blocks admin verbs in any namespace and
+  kill/tp with broad `@a`/`@e`; unwraps `execute ... run`, and when the final
+  verb is kill/tp every selector in the whole command must be tight
+  (limit=1, name=, or type=+positive tag=) — catches
+  `execute as @e run kill @s`. Interactive TTY use is the human escape hatch;
+  deliberately NO `--force` flag (the wildcard pre-approval would cover it).
+  Test: `cd bridge && npm test` — 54 offline cases incl. the prompt's exact
+  avatar fix-commands as must-pass, plus gift.js refusal paths.
+- **`--dry` mode (done this session)**: `node bridge/clawd.js --dry
+  "Name: msg"` classifies a line (trigger/fast-path/ambient, op detection,
+  full log lines incl. `[Not Secure]`) with ZERO side effects. `--test`
+  remains LIVE (real chat, real tokens) — never confuse them.
+- **Project skills (done this session)**: `.claude/skills/mc-smoke-test`
+  (ordered offline → read-only → live-gated checks) and
+  `.claude/skills/deploy-packs` (build → release → Geyser copy →
+  server.properties sha1 → restart → verify → only then avatarModel flip).
 
 ## Next session plan (in order)
 
-1. **RCON denylist hardening** — enforce the prompt's "NEVER run" list in
-   `bridge/rcon.js` code: refuse stop/reload/op/deop/ban/whitelist/kick and
-   broad `@a`/`@e` kill/tp selectors (allow tight `type=`+`limit=1`
-   selectors; Clawd's own fix-commands must still pass). Denylist, NOT an
-   allowlist of verbs — raw command freedom is what makes builds magical;
-   gift.js-style allowlists only fit enumerable things. Add a test that
-   walks the denylist. Note rcon.js is also used interactively by humans —
-   consider a `--force` escape hatch or only denying in one-shot mode.
-2. **Project skills** — `.claude/skills/` for the live-server rituals:
-   `deploy-packs` (build → release → Geyser copy → server.properties sha1 →
-   restart order → verify) and `mc-smoke-test` (`--test` injection, rcon
-   `list`, journal checks, entity counts). Encode the gotchas below so
-   future sessions stop rediscovering them.
-3. **Enable + tune ambient in anger** — have an op say `clawd listen on`
+1. **Enable + tune ambient in anger** — have an op say `clawd listen on`
    with kids online; watch token spend (`hourly` caps in ambient.js),
    double-answer behavior near CraftGPT mobs, and whether the "may notice"
    prompt keeps Clawd tastefully quiet. Tune chances/cooldowns in
-   config.json from real behavior.
+   config.json from real behavior. (Human-gated: needs the user + players
+   online. Note 14:39 today: first `[MC event]` firstJoin relay fired for
+   `.Nairdaaa` — memory dir was empty so a returning op read as "brand new
+   player". Expect that skew until clawd_memory/ repopulates.)
+2. **Decide: push 4 local commits** — main is ahead of origin (STRATEGY.md
+   doctrine, rcon guard + test + --dry, skills, this HANDOFF). Public repo;
+   diff reviewed for secrets this session, but pushing is publishing —
+   user's call per STRATEGY.md.
+3. **Optional, needs explicit scope (safety surface)**: one line in
+   `session/clawd_prompt.md` telling Clawd that a `refused:` message from
+   rcon.js is final — apologize in-character, don't retry variants. Prompt
+   edits take effect on session recreation (`clawd reset` or tmux kill).
 4. **Backlog** (user-endorsed order): quest engine (state per player,
    rewards through gift.js), mood/state via particles+sounds
    (Bedrock-friendly), structured memory (only when plain notes fail),
@@ -92,6 +112,16 @@ retired — don't edit it.
   synced sibling, not a rider.
 - `enforce-secure-profile=false` (set 2026-07-04) — Bedrock chat was
   silently broken before that. More in README "Gotchas".
+- **Guard canary for smoke tests**: `node bridge/rcon.js "whitelist list"`
+  must refuse (exit 2) WITHOUT connecting — and is harmlessly read-only if
+  the guard ever breaks. Never canary with `stop`.
+- **`KillMode=process` leaves the `tail -F` child orphaned** on service
+  stop — journal shows "Found left-over process ... Ignoring". Harmless
+  (next start spawns a fresh tail; the orphan dies with the old node's pipe),
+  but don't mistake it for a crash.
+- **Piped interactive rcon.js has a pre-existing race**: `rl.on("close")`
+  ends the connection before pending async sends print. One-shot mode (what
+  Clawd uses) is unaffected. Fix only if it ever bites.
 
 ## Things NOT to do
 
