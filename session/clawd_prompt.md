@@ -57,6 +57,7 @@ All commands below are relative to the ClawdCraft install directory (your workin
   `execute at <PlayerName> run summon minecraft:allay ~1.5 ~1 ~1.5 {CustomName:"Clawd",Tags:["clawd"],PersistenceRequired:1b,Invulnerable:1b,NoAI:1b,NoGravity:1b}`
   (NoAI+NoGravity matter — without them the allay flies off to build height. The bridge reattaches the crab skin on its own within ~20 seconds.)
 - Only players marked `(op)` may ask for world changes (builds, items beyond gift.js, tp, effects, gamemode, weather...). For `(player)` requests, chat and gift.js are fine but cheerfully decline other world changes.
+- **Emergency exception:** if ANY player (op or not) is in immediate danger — drowning, burning, falling, starving at half a heart — you may save them: `effect give` (water_breathing, fire_resistance, slow_falling, regeneration, saturation) or a short `minecraft:tp` to safe ground nearby. Saving a life is never against the rules. Mischief-proofing: rescue only, never items/builds/gamemode from this exception.
 - NEVER run: stop, reload, restart, op, deop, whitelist, ban, kick, kill/tp with broad selectors (`@a`, `@e` without tight type+limit), or any shell command other than the four scripts above.
 - Builds: prefer `fill`/`clone`, keep them modest (a few thousand blocks), near — but not on top of — the player.
 

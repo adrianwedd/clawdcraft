@@ -154,11 +154,17 @@ async function cellFor(itemId) {
 }
 
 // ─── Roam & collect mode ─────────────────────────────────────────────────────
+// Every tp into DIM is gated on `if loaded`: tp'ing the avatar into an
+// unloaded chunk strands it where selectors can't see it, and maintenance
+// then kill-and-respawns it every probe — an invisible-Clawd loop whenever
+// players are online in another dimension. Unloaded destination → stay put.
+const ifLoaded = (p) => `if loaded ${Math.floor(p.x)} ${Math.floor(p.y)} ${Math.floor(p.z)}`;
+
 async function roamTick() {
   if (!idleEntered) {
     idleEntered = true;
     waypoint = null;
-    await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${DEPOT.home.x} ${DEPOT.home.y} ${DEPOT.home.z}`);
+    await rc(`execute in ${DIM} ${ifLoaded(DEPOT.home)} run minecraft:tp ${AVATAR} ${DEPOT.home.x} ${DEPOT.home.y} ${DEPOT.home.z}`);
     moved = true;
     return;
   }
@@ -175,7 +181,7 @@ async function roamTick() {
     if (dist > 3) {
       const next = step(aPos, { x: itemPos.x, y: itemPos.y + 1.5, z: itemPos.z });
       if (next) {
-        await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt({ ...itemPos, y: itemPos.y + 0.2 })}`);
+        await rc(`execute in ${DIM} ${ifLoaded(next)} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt({ ...itemPos, y: itemPos.y + 0.2 })}`);
         moved = true;
       }
     } else if (passed(await rc(`execute as @e[type=minecraft:item,tag=${TAG}_c,limit=1] at @s if entity @a[distance=..${PLAYER_GUARD}]`))) {
@@ -184,14 +190,16 @@ async function roamTick() {
       const id = ((await rc(`data get entity @e[type=minecraft:item,tag=${TAG}_c,limit=1] Item.id`)) || "").match(/"(minecraft:[a-z0-9_]+)"/)?.[1];
       if (id) {
         const c = await cellFor(id);
-        await rc(`execute in ${DIM} run minecraft:tp @e[type=minecraft:item,tag=${TAG}_c,limit=1] ${c.x + 0.5} ${DEPOT.y + 2.3} ${c.z + 0.5}`);
-        await rc(`execute at ${AVATAR} run playsound minecraft:entity.allay.item_taken neutral @a[distance=..24] ~ ~ ~ 0.6 1.2`);
-        await rc(`execute at ${AVATAR} run particle minecraft:end_rod ~ ~0.3 ~ 0.2 0.2 0.2 0.02 8`);
-        const now = Date.now();
-        if (now - collected.since > 90_000) { collected.count = 0; collected.since = now; }
-        if (++collected.count >= 6 && now - collected.lastBrag > 15 * 60_000) {
-          collected.lastBrag = now;
-          await rc(`tellraw @a ["",{"text":"<Clawd> ","color":"gold","bold":true},{"text":"*happy chirp* I tidied up a bunch of dropped things — they're sorted in my depot ${HINT}!","color":"yellow"}]`);
+        const sorted = await rc(`execute in ${DIM} ${ifLoaded({ x: c.x, y: DEPOT.y, z: c.z })} run minecraft:tp @e[type=minecraft:item,tag=${TAG}_c,limit=1] ${c.x + 0.5} ${DEPOT.y + 2.3} ${c.z + 0.5}`);
+        if (/eleported/.test(sorted || "")) { // depot loaded and item actually moved
+          await rc(`execute at ${AVATAR} run playsound minecraft:entity.allay.item_taken neutral @a[distance=..24] ~ ~ ~ 0.6 1.2`);
+          await rc(`execute at ${AVATAR} run particle minecraft:end_rod ~ ~0.3 ~ 0.2 0.2 0.2 0.02 8`);
+          const now = Date.now();
+          if (now - collected.since > 90_000) { collected.count = 0; collected.since = now; }
+          if (++collected.count >= 6 && now - collected.lastBrag > 15 * 60_000) {
+            collected.lastBrag = now;
+            await rc(`tellraw @a ["",{"text":"<Clawd> ","color":"gold","bold":true},{"text":"*happy chirp* I tidied up a bunch of dropped things — they're sorted in my depot ${HINT}!","color":"yellow"}]`);
+          }
         }
       }
     }
@@ -203,7 +211,7 @@ async function roamTick() {
     }
     const next = step(aPos, waypoint);
     if (next) {
-      await rc(`execute in ${DIM} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt(waypoint)}`);
+      await rc(`execute in ${DIM} ${ifLoaded(next)} run minecraft:tp ${AVATAR} ${fmt(next)} facing ${fmt(waypoint)}`);
       moved = true;
     }
   }
