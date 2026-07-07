@@ -22,9 +22,10 @@ Issues live at https://github.com/adrianwedd/clawdcraft/issues — one per item.
 | # | Feature | Why now |
 |---|---------|---------|
 | [#12](https://github.com/adrianwedd/clawdcraft/issues/12) | Enable + tune ambient presence in production | Built and live-but-off; needs an op in-game to switch on and observe. Human-gated. |
-| [#1](https://github.com/adrianwedd/clawdcraft/issues/1) | Per-player token budget for direct chat | Ambient has caps; direct chat has none. Biggest open cost risk. |
 | [#11](https://github.com/adrianwedd/clawdcraft/issues/11) | Prompt line: refusals are final | One line; stops the model burning turns retrying guard-blocked commands. Safety surface — owner go-ahead required. |
-| [#6](https://github.com/adrianwedd/clawdcraft/issues/6) | Brain-turn metering + `clawd usage` | Tuning #12 and #1 properly needs the numbers. |
+| [#6](https://github.com/adrianwedd/clawdcraft/issues/6) | Brain-turn metering + `clawd usage` | Tuning #12 and the chat budget properly needs the numbers. |
+
+**Done since last pass:** [#1](https://github.com/adrianwedd/clawdcraft/issues/1) per-player token budget for direct chat — shipped `878b5d6`.
 
 ## Next (make Clawd more alive, mostly token-free)
 

@@ -1,4 +1,4 @@
-# HANDOFF — state as of 2026-07-04 (end of third session)
+# HANDOFF — state as of 2026-07-07 (fifth session)
 
 Context for the next Claude session picking this up. **Read STRATEGY.md
 first** — executor doctrine: file authority, invariants, escalation triggers,
@@ -10,15 +10,34 @@ from `session/clawd_session.sh` with repo-relative pre-approved tools.
 
 Public repo: https://github.com/adrianwedd/clawdcraft (resource packs hosted
 on the v0.2.1 release). main is pushed and in sync with origin as of end of
-session. The old copy at `/home/pi/minecraft_server/bot/` is retired — don't
-edit it.
+session (`cbf72e7`). The old copy at `/home/pi/minecraft_server/bot/` is
+retired — don't edit it.
 
-## Live state at handoff (all verified 2026-07-04 ~16:00)
+## Live state at handoff (verified 2026-07-07 ~11:50)
 
-Service active, brain healthy and answering (end-to-end `--test` verified at
-15:52: injection → brain → say.js reply in game chat). Working tree clean.
-One cosmetic leftover: `companion_data.json` lastTarget is "SmokeTest" from
-the verification — self-corrects when the next real player speaks to Clawd.
+Service active, brain force-recreated on this session's fixes (confirmed via
+`tmux list-sessions` creation timestamp and the statusline's git-HEAD
+matching `cbf72e7`) and answering. `journalctl -u clawd` clean since restart.
+Working tree clean except the untracked `undefined` file (a stray
+`script(1)` artifact from 2026-07-04, harmless, not part of the repo).
+
+## Since the last HANDOFF (2026-07-04 → 2026-07-07)
+
+- **Per-player token budget for direct chat shipped** (`878b5d6`, closes
+  issue #1): `bridge/chat_budget.js` — 15s per-player cooldown, 30/hr and
+  150/day caps, ops exempt, canned in-character over-budget line (itself
+  throttled) so denials cost zero tokens. Budget spent only after a
+  successful inject. 15 offline tests with a fake clock (`npm test`, 69
+  total across both suites).
+- **Companion chunk-loaded gating + emergency rescue exception** (`cbf72e7`):
+  see field notes below — this closed a real invisible-avatar bug, not just
+  a rule change.
+- **Obi's Bedrock/Java accounts linked** (2026-07-06, done from the
+  `minecraft_server` side, not this repo, but changes ops here): Floodgate
+  local linking (`enable-own-linking` + `floodgate-sqlite-database.jar`) maps
+  Bedrock `.Obi000000` → Java `Obi000000` (`313dc80a-60f7-4eef-94e9-fa8b301e9f1c`).
+  `config.json`'s `ops` array and `clawd_prompt.md` both already reflect
+  `Obi000000` alongside `.Obi000000`.
 
 ## What exists and works
 
@@ -83,16 +102,12 @@ the verification — self-corrects when the next real player speaks to Clawd.
    `clawd listen on` with kids online; watch token spend against the hourly
    caps, double-answer behavior near CraftGPT mobs, and whether "may notice,
    NOT must reply" keeps Clawd tastefully quiet. Tune config from behavior.
-2. **Per-player token budget for direct chat** (issue #1) — the biggest open
-   cost risk: `clawd ...` spam has no cap while ambient does. Reuse
-   ambient.js's budget logic in clawd.js handle(); canned in-character
-   over-budget line; fast paths stay free.
-3. **Brain-turn metering + `clawd usage`** (issue #6) — needed to tune 1+2
-   with data instead of vibes.
-4. **Watchdog** (issue #7, priority raised by today's brain-hang incident) —
-   detect a catatonic brain (liveness probe, NOT prompt presence; see field
-   note), one auto-recovery, alert ops in-game.
-5. **Prompt line: refusals are final** (issue #11, safety surface — needs
+2. **Brain-turn metering + `clawd usage`** (issue #6) — needed to tune #12
+   and the chat budget with data instead of vibes.
+3. **Watchdog** (issue #7, priority raised by the 2026-07-04 brain-hang
+   incident) — detect a catatonic brain (liveness probe, NOT prompt
+   presence; see field note), one auto-recovery, alert ops in-game.
+4. **Prompt line: refusals are final** (issue #11, safety surface — needs
    explicit user go-ahead): one clawd_prompt.md line so the model doesn't
    burn turns retrying guard-blocked commands. Takes effect on session
    recreation.
@@ -101,6 +116,27 @@ Everything else: ROADMAP.md (Now/Next/Later + gated items with triggers).
 
 ## Field notes / gotchas (hard-won)
 
+- **`systemctl restart clawd` does NOT reload `clawd_prompt.md`.**
+  `KillMode=process` means a service restart only respawns the bridge
+  (node) process — the tmux `clawd` session (the actual brain, launched via
+  `session/clawd_session.sh` with `--append-system-prompt` baked in at
+  launch) survives untouched, per `bridge/clawd.js`'s `has-session` check
+  before it will recreate. Any prompt edit needs
+  `tmux kill-session -t clawd && sudo systemctl restart clawd` — watch the
+  journal for `creating tmux session 'clawd' (Clawd's brain)...` to confirm
+  it actually recreated, and cross-check the tmux statusline's git-HEAD hash
+  against the commit that changed the prompt. Companion.js / other
+  bridge-side JS changes DO take effect on a plain service restart.
+- **Companion avatar vanishing in another dimension (fixed 2026-07-06,
+  `cbf72e7`)**: `roomTick()`'s `execute in <DIM> run minecraft:tp ...` was
+  unconditional, so it happily teleported the avatar to its depot/waypoint
+  even when nobody was in that dimension and the destination chunk was
+  unloaded — the entity went invisible to every selector, and maintenance
+  then killed-and-respawned it every ~11s (visible as a tight loop in the
+  journal). Fix: every cross-dimension tp is now gated on
+  `if loaded <x> <y> <z>` (see `ifLoaded()` in `bridge/companion.js`); an
+  unloaded destination means the avatar just stays put instead of
+  teleporting into the void.
 - **Brain-hang incident (15:09–15:52, 2026-07-04)**: a freshly created brain
   claude process went catatonic right after startup — pane frozen on the
   welcome screen, keys swallowed, and send-keys produced misleading secondary
