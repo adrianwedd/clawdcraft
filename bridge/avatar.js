@@ -25,7 +25,7 @@ const SKIN = `@e[type=minecraft:item_display,tag=${TAG}_skin,limit=1]`;
 // Scale 1.2 / lifted 0.25: the opaque crab fully encloses the (vanilla,
 // visible) carrier allay on Java — no transparent-texture hack, so wild
 // allays are untouched. Tune here if a wingtip pokes out in game.
-const SKIN_NBT = `{CustomName:"Clawd",Tags:["${TAG}_skin"],billboard:"vertical",teleport_duration:2,transformation:{translation:[0f,0.25f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1.2f,1.2f,1.2f]},item:{id:"minecraft:paper",count:1,components:{"minecraft:item_model":"clawdcraft:item/clawd"}}}`;
+const SKIN_NBT = `{CustomName:"Clawd",Tags:["${TAG}_skin"],billboard:"vertical",teleport_duration:2,transformation:{translation:[0f,0.25f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1.2f,1.2f,1.2f]},item:{id:"minecraft:paper",count:1,components:{"minecraft:item_model":"clawdcraft:clawd"}}}`;
 
 module.exports = {
   crab: CFG.avatarModel === "crab",
