@@ -157,7 +157,8 @@ broad-selector kills, committing secrets, personal-tmux injection = forbidden.
 
 ## 6. VERIFICATION
 
-No test suite exists (OBSERVED). Ordered checks:
+Test suite: `npm test` in `bridge/` — rcon_guard + chat_budget, 69 cases
+(OBSERVED). Safe, always run. Further ordered checks:
 
 1. `node --check bridge/<changed>.js` — expect silence. Safe, always run.
 2. `systemctl status clawd --no-pager` — expect `active (running)`, no

@@ -2,8 +2,9 @@
 //
 // avatarModel "allay" (default): the plain (retextured-by-pack) allay.
 // avatarModel "crab": Java players see a crab item_display (model
-//   clawdcraft:clawd from the Java pack, which also turns the allay itself
-//   invisible); Bedrock players see the crab via the Bedrock pack's custom
+//   clawdcraft:clawd from the Java pack; the allay stays visible but the
+//   opaque crab fully encloses it — see the SKIN_NBT scale note below);
+//   Bedrock players see the crab via the Bedrock pack's custom
 //   allay geometry and don't see item displays at all. One allay + one
 //   display = one crab on both editions.
 //
