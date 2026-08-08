@@ -65,7 +65,7 @@ async function main() {
     const v = check(cmd);
     if (!v.ok) {
       console.error(`refused: ${v.reason}`);
-      console.error("(the guard covers scripted use; a human can run `node bridge/rcon.js` interactively from a terminal)");
+      console.error("(the guard covers scripted use; human-supervised maintenance can use `node bridge/admin_rcon.js` — it refuses to run inside Clawd's session)");
       process.exit(2);
     }
     await rcon.connect();
