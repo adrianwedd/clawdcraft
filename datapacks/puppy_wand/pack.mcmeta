@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Puppy Wand — bonk a mob, get a puppy",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

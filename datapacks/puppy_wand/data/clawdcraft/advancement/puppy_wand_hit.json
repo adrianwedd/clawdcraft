@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "bonk": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:bone",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_puppy_wand:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:puppy_wand/hit"
+  }
+}
