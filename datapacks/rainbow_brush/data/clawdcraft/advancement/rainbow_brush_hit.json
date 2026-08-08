@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "brush": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:brush",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_rainbow_brush:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:rainbow_brush/hit"
+  }
+}

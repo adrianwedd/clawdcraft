@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Rainbow Brush — re-dye sheep at random; confetti for everyone else",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

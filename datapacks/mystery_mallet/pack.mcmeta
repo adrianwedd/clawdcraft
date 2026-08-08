@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Mystery Mallet — bonk a mob, get a random critter",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

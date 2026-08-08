@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "swap": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:golden_sword",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_switcheroo:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:switcheroo/hit"
+  }
+}

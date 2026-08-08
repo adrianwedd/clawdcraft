@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Shrink Stick — bonk a mob to shrink it, bonk again to restore",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

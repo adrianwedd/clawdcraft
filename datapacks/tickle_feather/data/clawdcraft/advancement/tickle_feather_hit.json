@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "tickle": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:feather",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_tickle_feather:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:tickle_feather/hit"
+  }
+}

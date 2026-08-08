@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "swing": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:breeze_rod",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_breeze_bat:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:breeze_bat/hit"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "whack": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:wooden_axe",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_mystery_mallet:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:mystery_mallet/hit"
+  }
+}

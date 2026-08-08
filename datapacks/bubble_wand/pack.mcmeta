@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Bubble Wand — trap a mob in a bubble: up, pop, drift down",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

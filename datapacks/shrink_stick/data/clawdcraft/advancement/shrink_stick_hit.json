@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "bonk": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:stick",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_shrink_stick:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:shrink_stick/hit"
+  }
+}

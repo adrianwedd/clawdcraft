@@ -1,0 +1,1 @@
+scoreboard objectives add clawdcraft_batcd dummy

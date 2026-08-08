@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Breeze Bat — one bonk sends every nearby hostile sky-high, gently",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}
