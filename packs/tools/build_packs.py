@@ -367,13 +367,13 @@ def build_java(mc_version: str | None, style: str, max_mc_version: str | None) -
     # (red in the pack list) and the crab falls back to the magenta/black
     # missing-model cube. Declaring the whole known-good range fixes it.
     #
-    # Three spellings of that range, because Mojang changed it twice and a
-    # client only honours the one it knows (unknown keys are ignored):
-    #   pack_format       legacy single number, pre-1.20.2
-    #   supported_formats {min_inclusive, max_inclusive}, 1.20.2-1.21.x
-    #   min_format/max_format  current -- what 1.21.11 and 26.2 built-in packs
-    #                     actually use. 26.2 ignores supported_formats, so
-    #                     omitting these leaves modern clients broken.
+    # Spelled EXACTLY as Mojang's own built-in packs spell it: min_format as
+    # [major, minor], max_format as a bare int, and NO `pack_format` key.
+    # Both the 1.21.11 and 26.2 client jars use this form, so it covers every
+    # client we care about. Do not "helpfully" re-add pack_format or
+    # supported_formats alongside it: shipping a stale pack_format (75) next
+    # to a wider min/max range made 26.2 clients reject the pack outright
+    # (v0.2.2 and v0.2.3 both failed in game that way).
     # Widen the range only across versions where the item-definition and model
     # schemas are unchanged -- verify before bumping --max-mc-version.
     print("  newest client to support:")
@@ -391,12 +391,7 @@ def build_java(mc_version: str | None, style: str, max_mc_version: str | None) -
                 {
                     "pack": {
                         "description": "Clawd! (ClawdCraft)",
-                        "pack_format": pack_format,
-                        "supported_formats": {
-                            "min_inclusive": pack_format,
-                            "max_inclusive": max_format,
-                        },
-                        "min_format": pack_format,
+                        "min_format": [pack_format, 0],
                         "max_format": max_format,
                     }
                 },
