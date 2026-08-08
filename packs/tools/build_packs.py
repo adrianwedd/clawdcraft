@@ -236,6 +236,18 @@ def crab_geo_bedrock() -> str:
 
 def crab_java_model() -> str:
     """Free-form Java item model (for the item_display the bridge mounts)."""
+    # UVs are expressed in the vanilla 16x16 model space, NOT in texture pixels.
+    #
+    # This model used to carry "texture_size": [64, 64] and raw 64-space UVs.
+    # That renders on 1.21.11 but a 26.2 client REJECTS the whole model, and a
+    # rejected model is the magenta/black cube -- with the carrier allay still
+    # visible inside it. Bisected in game 2026-08-08: dropping texture_size and
+    # scaling the UVs by 16/64 was the single change that brought the crab back
+    # (variants that only renamed the "0" texture key, or only pulled elements
+    # inside 0..16, both stayed magenta). Vanilla still uses texture_size on
+    # some BLOCK models in 26.2, so this is item-model-specific -- don't
+    # "restore" it here.
+    uv_scale = 16 / TEX_SIZE
     elements = []
     for _, _, (x, y, z), (w, h, d), (u0, v0) in CUBES:
         # entity space -> java model space: center at (8, _, 8), floor at y=2
@@ -246,14 +258,16 @@ def crab_java_model() -> str:
                 "from": [x + 8, y + 2, z + 8],
                 "to": [x + w + 8, y + h + 2, z + d + 8],
                 "faces": {
-                    face: {"uv": list(f[face]), "texture": "#0"}
+                    face: {
+                        "uv": [round(v * uv_scale, 4) for v in f[face]],
+                        "texture": "#0",
+                    }
                     for face in ("north", "south", "east", "west", "up", "down")
                 },
             }
         )
     return json.dumps(
         {
-            "texture_size": [TEX_SIZE, TEX_SIZE],
             "textures": {"0": "clawdcraft:item/clawd", "particle": "clawdcraft:item/clawd"},
             "elements": elements,
         },
