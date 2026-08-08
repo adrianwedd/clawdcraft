@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Rage Blade — auto-smites surrounding hostiles when its owner is about to die",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

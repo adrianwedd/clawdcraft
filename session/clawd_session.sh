@@ -15,8 +15,13 @@ MODEL=$(node -e "console.log(require('$ROOT/bridge/config').model)")
 # Only exported here, so human terminals and maintenance sessions don't echo.
 export CLAWD_RCON_ECHO=1
 
+# --remote-control: steer/watch the brain from claude.ai (phone) without SSH.
+# --autocompact 100k: compact early so long-lived sessions stay cheap between
+#   nightly recycles (see session/recycle_brain.sh).
 exec "$CLAUDE_BIN" \
   --model "$MODEL" \
+  --remote-control clawd \
+  --autocompact 100k \
   --allowedTools \
     "Bash(node bridge/rcon.js:*)" \
     "Bash(node bridge/say.js:*)" \

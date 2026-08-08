@@ -12,3 +12,4 @@ seen_players.json
 packs/build/
 node_modules/
 *.log
+recycle.log
