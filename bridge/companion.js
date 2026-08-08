@@ -71,10 +71,23 @@ let idleEntered = false;
 let waypoint = null;
 let collected = { count: 0, since: 0, lastBrag: 0 };
 
+// setTarget() can fire without start() having run — `clawd.js --test` builds a
+// short-lived bridge that never starts the companion loop. Saving before a
+// load would then write the empty module default over the real file and lose
+// the depot cell map, so every save loads first if it hasn't already.
+let stateLoaded = false;
+
 function loadState() {
   try { state = { lastTarget: null, cells: {}, ...JSON.parse(fs.readFileSync(DATA_FILE, "utf8")) }; } catch {}
+  stateLoaded = true;
 }
 function saveState() {
+  if (!stateLoaded) {
+    // Re-apply whatever this process set on top of what's on disk.
+    const pending = state;
+    loadState();
+    state = { ...state, ...pending, cells: { ...state.cells, ...pending.cells } };
+  }
   try { fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2)); } catch (e) { log(`state save failed: ${e.message}`); }
 }
 function readCtl() {
