@@ -363,12 +363,19 @@ def build_java(mc_version: str | None, style: str, max_mc_version: str | None) -
 
     # Players' clients auto-update past the server: ViaVersion lets a newer
     # client join a 1.21.11 server, but the client validates pack.mcmeta
-    # against ITS OWN pack_format. A bare pack_format reads as incompatible
+    # against ITS OWN format number. A single format reads as incompatible
     # (red in the pack list) and the crab falls back to the magenta/black
-    # missing-model cube. `supported_formats` declares the whole range the
-    # pack is known-good for, so one pack serves both. Widen it only across
-    # versions where the item-definition and model schemas are unchanged --
-    # verify before bumping --max-mc-version.
+    # missing-model cube. Declaring the whole known-good range fixes it.
+    #
+    # Three spellings of that range, because Mojang changed it twice and a
+    # client only honours the one it knows (unknown keys are ignored):
+    #   pack_format       legacy single number, pre-1.20.2
+    #   supported_formats {min_inclusive, max_inclusive}, 1.20.2-1.21.x
+    #   min_format/max_format  current -- what 1.21.11 and 26.2 built-in packs
+    #                     actually use. 26.2 ignores supported_formats, so
+    #                     omitting these leaves modern clients broken.
+    # Widen the range only across versions where the item-definition and model
+    # schemas are unchanged -- verify before bumping --max-mc-version.
     print("  newest client to support:")
     max_version, max_jar = client_jar(max_mc_version)
     max_format = pack_format_of(max_jar)
@@ -383,12 +390,14 @@ def build_java(mc_version: str | None, style: str, max_mc_version: str | None) -
             json.dumps(
                 {
                     "pack": {
-                        "pack_format": pack_format,
                         "description": "Clawd! (ClawdCraft)",
+                        "pack_format": pack_format,
                         "supported_formats": {
                             "min_inclusive": pack_format,
                             "max_inclusive": max_format,
                         },
+                        "min_format": pack_format,
+                        "max_format": max_format,
                     }
                 },
                 indent=2,
