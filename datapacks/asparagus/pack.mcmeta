@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Magic Asparagus — freezes mobs in time (10s)",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

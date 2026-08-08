@@ -1,0 +1,1 @@
+scoreboard objectives add clawdcraft_freeze dummy
