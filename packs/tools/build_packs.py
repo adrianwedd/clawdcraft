@@ -59,6 +59,27 @@ ROOT = Path(__file__).resolve().parent.parent  # packs/
 BUILD = ROOT / "build"
 CACHE = BUILD / "cache"
 
+# Bedrock identifies a pack by UUID, not by content: a fresh UUID per build
+# reads as a DIFFERENT pack, so every client re-downloads and old copies pile
+# up in their pack list. These are pinned to the UUIDs of the pack already
+# deployed in plugins/Geyser-Spigot/packs/ so rebuilds are invisible to
+# clients. To ship changed content, bump BEDROCK_VERSION instead — same UUID,
+# higher version, which is Bedrock's actual update mechanism.
+# NEVER regenerate these.
+BEDROCK_UUIDS = {
+    "crab": {
+        "header": "8b1f5fcb-4378-4588-9d0a-141455ec3358",
+        "module": "610b3a15-24bf-4495-8a13-619e1d76b2db",
+    },
+    # classic predates the pinning; its UUIDs are derived deterministically so
+    # they are at least stable across builds.
+    "classic": {
+        "header": str(uuid.uuid5(uuid.NAMESPACE_DNS, "clawdcraft.classic.header")),
+        "module": str(uuid.uuid5(uuid.NAMESPACE_DNS, "clawdcraft.classic.module")),
+    },
+}
+BEDROCK_VERSION = {"crab": [2, 1, 0], "classic": [1, 0, 0]}
+
 # ─── The crab, as boxes ───────────────────────────────────────────────────────
 # Proportions traced from packs/reference/clawd.webp (a 400x400 pixel-art crab:
 # body with two square eyes, one stubby claw each side, four legs). Coordinates
@@ -298,12 +319,12 @@ def clawdify(png_bytes: bytes) -> bytes:
     return buf.getvalue()
 
 
-def java_pack_meta(mc_version: str | None) -> tuple[int, bytes]:
-    """Returns (pack_format, vanilla allay png) from the official client jar."""
+def client_jar(mc_version: str | None) -> tuple[str, Path]:
+    """Resolves a version id and returns (version, cached client jar path)."""
     manifest = json.loads(fetch(MANIFEST_URL))
     if mc_version is None:
         mc_version = manifest["latest"]["release"]
-        print(f"  no --mc-version given, using latest release: {mc_version}")
+        print(f"  no version given, using latest release: {mc_version}")
     entry = next((v for v in manifest["versions"] if v["id"] == mc_version), None)
     if entry is None:
         sys.exit(f"ERROR: version {mc_version} not in Mojang manifest")
@@ -315,26 +336,61 @@ def java_pack_meta(mc_version: str | None) -> tuple[int, bytes]:
         jar_path.write_bytes(fetch(version_json["downloads"]["client"]["url"]))
     else:
         print(f"  using cached {jar_path.name}")
+    return mc_version, jar_path
 
+
+def pack_format_of(jar_path: Path) -> int:
+    with zipfile.ZipFile(jar_path) as jar:
+        pv = json.loads(jar.read("version.json"))["pack_version"]
+    # schema drift: {"resource": N} in older versions, {"resource_major": N,
+    # "resource_minor": M} in newer ones
+    return pv["resource"] if "resource" in pv else pv["resource_major"]
+
+
+def java_pack_meta(mc_version: str | None) -> tuple[int, bytes]:
+    """Returns (pack_format, vanilla allay png) from the official client jar."""
+    _, jar_path = client_jar(mc_version)
     with zipfile.ZipFile(jar_path) as jar:
         allay = jar.read("assets/minecraft/textures/entity/allay/allay.png")
-        pv = json.loads(jar.read("version.json"))["pack_version"]
-        # schema drift: {"resource": N} in older versions, {"resource_major": N,
-        # "resource_minor": M} in newer ones
-        pack_format = pv["resource"] if "resource" in pv else pv["resource_major"]
+    pack_format = pack_format_of(jar_path)
     print(f"  pack_format {pack_format} (from client version.json)")
     return pack_format, allay
 
 
-def build_java(mc_version: str | None, style: str) -> None:
+def build_java(mc_version: str | None, style: str, max_mc_version: str | None) -> None:
     print("Java pack:")
     pack_format, vanilla_allay = java_pack_meta(mc_version)
+
+    # Players' clients auto-update past the server: ViaVersion lets a newer
+    # client join a 1.21.11 server, but the client validates pack.mcmeta
+    # against ITS OWN pack_format. A bare pack_format reads as incompatible
+    # (red in the pack list) and the crab falls back to the magenta/black
+    # missing-model cube. `supported_formats` declares the whole range the
+    # pack is known-good for, so one pack serves both. Widen it only across
+    # versions where the item-definition and model schemas are unchanged --
+    # verify before bumping --max-mc-version.
+    print("  newest client to support:")
+    max_version, max_jar = client_jar(max_mc_version)
+    max_format = pack_format_of(max_jar)
+    if max_format < pack_format:
+        sys.exit(f"ERROR: --max-mc-version {max_version} (pack_format {max_format}) is older than the server version")
+    print(f"  pack_format {max_format} ({max_version}) -> supported_formats {pack_format}..{max_format}")
+
     out = BUILD / "clawdcraft-java.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(
             "pack.mcmeta",
             json.dumps(
-                {"pack": {"pack_format": pack_format, "description": "Clawd! (ClawdCraft)"}},
+                {
+                    "pack": {
+                        "pack_format": pack_format,
+                        "description": "Clawd! (ClawdCraft)",
+                        "supported_formats": {
+                            "min_inclusive": pack_format,
+                            "max_inclusive": max_format,
+                        },
+                    }
+                },
                 indent=2,
             ),
         )
@@ -366,12 +422,12 @@ def build_bedrock(style: str) -> None:
         "header": {
             "name": "ClawdCraft",
             "description": "Clawd! (crab allay)" if style == "crab" else "Clawd! (allay reskin)",
-            "uuid": str(uuid.uuid4()),
-            "version": [2, 1, 0] if style == "crab" else [1, 0, 0],
+            "uuid": BEDROCK_UUIDS[style]["header"],
+            "version": BEDROCK_VERSION[style],
             "min_engine_version": [1, 20, 0],
         },
         "modules": [
-            {"type": "resources", "uuid": str(uuid.uuid4()), "version": [1, 0, 0]}
+            {"type": "resources", "uuid": BEDROCK_UUIDS[style]["module"], "version": [1, 0, 0]}
         ],
     }
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -391,9 +447,10 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mc-version", default=None, help="Java MC version (default: current latest release; pin this to your server's version, e.g. 1.21.11)")
     ap.add_argument("--style", default="crab", choices=["crab", "classic"], help="crab: true crab shape (default); classic: coral recolor of the vanilla allay")
+    ap.add_argument("--max-mc-version", default=None, help="newest client version the pack should declare support for via supported_formats (default: current latest release). Players whose clients auto-update past the server still need the pack to load.")
     args = ap.parse_args()
     BUILD.mkdir(parents=True, exist_ok=True)
-    build_java(args.mc_version, args.style)
+    build_java(args.mc_version, args.style, args.max_mc_version)
     build_bedrock(args.style)
     if args.style == "crab":
         preview_front()
