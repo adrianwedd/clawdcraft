@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "storm": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:enchanted_golden_apple",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_polymorph_storm:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:polymorph_storm/hit"
+  }
+}

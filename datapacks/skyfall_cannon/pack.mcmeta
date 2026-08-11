@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Skyfall Cannon — launch mobs ~50+ blocks straight up with firework bursts at launch and landing",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

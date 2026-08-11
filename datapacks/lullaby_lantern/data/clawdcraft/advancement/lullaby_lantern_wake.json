@@ -1,0 +1,40 @@
+{
+  "criteria": {
+    "hit_sleeping": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:inverted",
+            "term": {
+              "condition": "minecraft:entity_properties",
+              "entity": "this",
+              "predicate": {
+                "equipment": {
+                  "mainhand": {
+                    "items": "minecraft:clock",
+                    "predicates": {
+                      "minecraft:custom_data": "{clawdcraft_lullaby_lantern:1b}"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "entity": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "nbt": "{\"Tags\":[\"clawdcraft_sleeping\"]}"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:lullaby_lantern/wake_hit"
+  }
+}

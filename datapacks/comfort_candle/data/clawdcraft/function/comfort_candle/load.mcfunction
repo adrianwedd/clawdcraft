@@ -1,0 +1,2 @@
+scoreboard objectives add clawdcraft_candlecd dummy
+scoreboard objectives add clawdcraft_comfort dummy

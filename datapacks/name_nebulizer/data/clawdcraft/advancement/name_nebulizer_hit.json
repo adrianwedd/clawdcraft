@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "rebrand": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:name_tag",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_name_nebulizer:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:name_nebulizer/hit"
+  }
+}

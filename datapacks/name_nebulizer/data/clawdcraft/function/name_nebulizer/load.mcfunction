@@ -1,0 +1,2 @@
+scoreboard objectives add clawdcraft_nebulcd dummy
+scoreboard objectives add clawdcraft_name_roll dummy

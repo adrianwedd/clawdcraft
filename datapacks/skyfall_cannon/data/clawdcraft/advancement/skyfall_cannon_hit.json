@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "launch": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:firework_rocket",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_skyfall_cannon:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:skyfall_cannon/hit"
+  }
+}

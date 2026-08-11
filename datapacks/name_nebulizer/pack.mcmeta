@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Name Nebulizer — rebrand any mob with a random silly CustomName",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

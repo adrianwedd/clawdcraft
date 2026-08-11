@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Lullaby Lantern — put hostiles to sleep until time expires or they take damage",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

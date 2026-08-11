@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Polymorph Storm — transform all eligible mobs within 10 blocks into harmless critters",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

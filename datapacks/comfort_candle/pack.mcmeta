@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "ClawdCraft Comfort Candle — a warm, non-lethal healing aura for any bonked mob",
+    "min_format": [94, 0],
+    "max_format": 94
+  }
+}

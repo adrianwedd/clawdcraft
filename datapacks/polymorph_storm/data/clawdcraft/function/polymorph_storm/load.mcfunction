@@ -1,0 +1,2 @@
+scoreboard objectives add clawdcraft_stormcd dummy
+scoreboard objectives add clawdcraft_pstorm dummy

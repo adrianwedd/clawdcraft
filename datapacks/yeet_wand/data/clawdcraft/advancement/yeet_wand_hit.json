@@ -1,0 +1,28 @@
+{
+  "criteria": {
+    "yeet": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "equipment": {
+                "mainhand": {
+                  "items": "minecraft:wooden_shovel",
+                  "predicates": {
+                    "minecraft:custom_data": "{clawdcraft_yeet_wand:1b}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rewards": {
+    "function": "clawdcraft:yeet_wand/hit"
+  }
+}

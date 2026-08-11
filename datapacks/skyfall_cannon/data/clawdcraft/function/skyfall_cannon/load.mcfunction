@@ -1,0 +1,3 @@
+scoreboard objectives add clawdcraft_skyfallcd dummy
+scoreboard objectives add clawdcraft_skyfall_t dummy
+scoreboard objectives add clawdcraft_skyfall_max dummy

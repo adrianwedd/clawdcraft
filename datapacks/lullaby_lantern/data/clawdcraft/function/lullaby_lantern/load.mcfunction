@@ -1,0 +1,2 @@
+scoreboard objectives add clawdcraft_lullabycd dummy
+scoreboard objectives add clawdcraft_sleep dummy
