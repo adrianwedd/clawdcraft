@@ -14,8 +14,9 @@ do-not-dos; read it before changing anything.
 `/home/pi/minecraft_server/bot/` is retired — don't edit it. Public repo:
 https://github.com/adrianwedd/clawdcraft
 
-Read STRATEGY.md before any task. It overrides your judgment. Conflicts with
-reality are escalations.
+Read STRATEGY.md before any task. It constrains outcomes and protects the
+invariants; it does not replace your judgment. Conflicts with reality are drift
+to investigate and reconcile, not automatic escalations (see its §0 AUTONOMY).
 
 Quick sanity checks:
 - `node bridge/clawd.js --test "TestPlayer: clawd hello"` (needs config.json)

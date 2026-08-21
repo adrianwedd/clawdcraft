@@ -1,12 +1,46 @@
 # STRATEGY.md — ClawdCraft executor doctrine
 
-This file overrides executor judgment. Conflict between this file, code, docs,
-git history, live state, or other agent guidance is DRIFT: report it and stop
-before relying on the disputed claim — it is never permission to guess. Known
-conflicts recorded below as documented-stale do not require stopping; any new,
-broader, or unexplained conflict is drift. Every substantive claim is labeled
-OBSERVED (explicit in code/docs/history/live state) or INFERRED (probable,
-evidence stated). UNKNOWN items are omitted.
+This file constrains outcomes and protects the invariants in §2; it does not
+replace executor judgment. Within those boundaries you are expected to
+investigate, infer, implement, test, repair drift, and finish the requested goal
+without asking permission for reversible, repository-local work. Conflict between
+this file, code, docs, git history, live state, or other agent guidance is
+DRIFT, and drift is a repair job, not a stop sign: work out which source is
+stale, wrong, or differently scoped using the §1 precedence (live state >
+HANDOFF.md > code comments > README > this file's snapshots), reconcile what the
+evidence settles, and say what you resolved. Do not guess across a conflict the
+evidence does not settle, and do not halt the whole task because of one —
+continue the independent safe work and escalate only when the disagreement is
+about an invariant or a decision that is the user's to make. Known conflicts
+recorded below as documented-stale are already adjudicated. Every substantive
+claim is labeled OBSERVED (explicit in code/docs/history/live state) or INFERRED
+(probable, evidence stated). UNKNOWN items are omitted.
+
+## 0. AUTONOMY
+
+A task is delegation: it authorizes the reversible, repository-local work needed
+to achieve it — reading anything local, `node --check`, `npm test` in `bridge/`,
+read-only RCON, journal and tmux reads, editing `bridge/`, packs, docs and tests,
+pack builds into `packs/build/`, committing on a branch — without a second
+permission check, unless the task says review-only / no changes. Because this
+checkout IS the live install, "repo-local" here means: the working tree stays
+`node --check`-clean at every save (Invariant: `Restart=always`), and the edit
+reaches players only through the documented `systemctl restart clawd` step or a
+crash. The boundary is **what players see, what spends tokens, and what mutates
+their world**, not "how big is the change": implementation is not execution.
+Writing a new bridge behaviour is repo-local; speaking in chat, injecting into
+the `clawd` tmux, mutating the world, restarting the Minecraft server, or
+widening a safety surface is the gate (§5). When the current task explicitly
+authorizes a class of action, do not ask again whether you may do it; only the
+§5 boundaries that are genuinely the user's — chat, world mutation, capability
+widening, publishing — always need a fresh, specific go-ahead.
+
+Missing conversational history is never a blocker. Reconstruct state from
+`git log`, HANDOFF.md, `config.json` and `systemctl status clawd` (read), the
+journal, and the GitHub repo; re-derive an earlier session's reasoning from the
+evidence rather than reporting its absence. Resolve ordinary ambiguity with
+evidence first, and report the assumption you made after doing the recoverable
+work, not instead of it.
 
 ## 1. INTENT
 
@@ -124,8 +158,9 @@ Continue safe preparatory work (reading, diagnosis, patches, `node --check`,
 pack builds into `packs/build/`) past any gated action; stop only the gated
 action itself. Escalate before:
 
-- Drift between HANDOFF.md, code, config.json, and live systemd/tmux state
-  (beyond the documented-stale CLAUDE.md line above).
+- A conflict about an invariant or a user decision that the evidence cannot
+  settle. Ordinary drift between HANDOFF.md, code, config.json, and live
+  systemd/tmux state is reconciled by the §1 precedence, not escalated.
 - Any world-mutating RCON command beyond documented avatar-maintenance
   patterns — real players' world. Read-only RCON (`list`,
   `execute if entity`) is allowed. Broad selectors (`@a`, `@e` without
@@ -136,12 +171,18 @@ action itself. Escalate before:
   escalate if the working tree is dirty with unreviewed changes or players
   are mid-conversation with Clawd. Restarting the Minecraft server itself:
   always escalate.
-- `git push`, `gh release` — publishes to a public repo; check for secrets
-  and the Anthropic-owned mascot likeness note (README license section).
-- Editing doctrine (CLAUDE.md, HANDOFF.md, STRATEGY.md) or safety surfaces:
-  `session/clawd_prompt.md`, `session/clawd_session.sh` `--allowedTools`,
-  `bridge/gift.js` ALLOWLIST, future rcon denylist — unless the task names
-  the file.
+- Pushing `main` or `gh release` — publishes to a public repo; check for
+  secrets and the Anthropic-owned mascot likeness note (README license
+  section). Pushing a working branch and opening a PR the task asked for is
+  repo-local after the same secrets check.
+- Safety surfaces: `session/clawd_prompt.md`, `session/clawd_session.sh`
+  `--allowedTools`, `bridge/gift.js` ALLOWLIST, the rcon denylist — unless the
+  task names the file (capability expansion of an autonomous agent around
+  children). Doctrine (CLAUDE.md, STRATEGY.md): correcting a stale fact or
+  reconciling drift is in scope for the task that exposes it — minimal edit,
+  called out in your summary; changing an invariant, a settled decision, or
+  the gated-action list needs the task to name that change. HANDOFF.md is
+  updated as the end-of-session task (§6 file authority).
 - Touching `clawd_memory/` contents (player personal notes = user data) or
   `config.json` (RCON password; ops list controls who can command Clawd).
 - Deploying packs: copying into `plugins/Geyser-Spigot/packs/`, editing
@@ -157,8 +198,8 @@ broad-selector kills, committing secrets, personal-tmux injection = forbidden.
 
 ## 6. VERIFICATION
 
-Test suite: `npm test` in `bridge/` — rcon_guard + chat_budget, 69 cases
-(OBSERVED). Safe, always run. Further ordered checks:
+Test suite: `npm test` in `bridge/` — rcon_guard + chat_budget (run it for the
+current case count; it needs `npm install` in `bridge/` first). Safe, always run. Further ordered checks:
 
 1. `node --check bridge/<changed>.js` — expect silence. Safe, always run.
 2. `systemctl status clawd --no-pager` — expect `active (running)`, no
