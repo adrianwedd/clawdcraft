@@ -7,6 +7,7 @@ companion_data.json
 companion_ctl.json
 ambient_ctl.json
 seen_players.json
+clawd_usage.jsonl
 
 # build artifacts
 packs/build/
