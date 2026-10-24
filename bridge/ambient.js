@@ -16,6 +16,11 @@
 //                   and deaths from the server log are relayed as
 //                   `[MC event] ...` with a CraftGPT-style % chance each.
 //
+// Successful relays are observable brain handoffs, so injects carry structured
+// metadata ({ kind: "overheard"|"event", player }) for the metering seam in
+// clawd.js (issue #6). Nothing else about these paths changed: same
+// cooldowns/caps, same prompts, no new world action.
+//
 // Deaths have no log prefix, so we track online players (seeded via `list`,
 // updated by join/leave lines) and match lines that start with a known name.
 
@@ -105,7 +110,7 @@ async function onChat(player, role, message) {
   if (!/Test passed/i.test(near || "")) return;
   budgetSpend("prox", player);
   log(`overheard ${player}: "${message.slice(0, 60)}"`);
-  await inject(`[MC overheard near Clawd] <${player}> (${role}): ${message}`);
+  await inject(`[MC overheard near Clawd] <${player}> (${role}): ${message}`, { kind: "overheard", player });
 }
 
 // ─── World events ────────────────────────────────────────────────────────────
@@ -119,11 +124,11 @@ function chance(kind) {
   return Math.random() * 100 < pct;
 }
 
-async function relayEvent(kind, text) {
+async function relayEvent(kind, text, player = null) {
   if (!evtsEnabled || !chance(kind) || !budgetOk("evt")) return;
   budgetSpend("evt");
   log(`event (${kind}): ${text}`);
-  await inject(`[MC event] ${text}`);
+  await inject(`[MC event] ${text}`, { kind: "event", player });
 }
 
 async function onLine(line) {
@@ -140,24 +145,25 @@ async function onLine(line) {
     await relayEvent(known ? "join" : "firstJoin",
       known
         ? `${player} just joined the game`
-        : `${player} just joined the game for the FIRST time ever — a brand new player!`);
+        : `${player} just joined the game for the FIRST time ever — a brand new player!`,
+      player);
     return;
   }
   const l = body.match(/^(.+) left the game$/);
   if (l) {
     online.delete(l[1]);
-    await relayEvent("leave", `${l[1]} just left the game`);
+    await relayEvent("leave", `${l[1]} just left the game`, l[1]);
     return;
   }
   const a = body.match(/^(.+?) has (made the advancement|completed the challenge|reached the goal) \[(.+)\]$/);
   if (a) {
-    await relayEvent("advancement", `${a[1]} just ${a[2] === "completed the challenge" ? "completed the challenge" : "earned the advancement"} "${a[3]}"`);
+    await relayEvent("advancement", `${a[1]} just ${a[2] === "completed the challenge" ? "completed the challenge" : "earned the advancement"} "${a[3]}"`, a[1]);
     return;
   }
   // Deaths: known online player name followed by a death phrase.
   for (const p of online) {
     if (body.startsWith(p + " ") && DEATH_RE.test(body.slice(p.length + 1))) {
-      await relayEvent("death", `${p} just died: "${body}"`);
+      await relayEvent("death", `${p} just died: "${body}"`, p);
       return;
     }
   }

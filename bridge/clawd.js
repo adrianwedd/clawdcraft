@@ -24,6 +24,8 @@
 //   clawd stay          companion mode: freeze in place
 //   clawd go home       companion mode: return to the depot and tidy up
 //   clawd reset         clear the Clawd session's context (/clear)
+//   clawd usage         op-only: today's brain handoffs by kind + top players
+//                       (bridge-side, no tokens, told privately to the op)
 
 const fs = require("fs");
 const { spawn, execFile } = require("child_process");
@@ -34,11 +36,21 @@ const companion = require("./companion");
 const avatar = require("./avatar");
 const ambient = require("./ambient");
 const { makeBudget } = require("./chat_budget");
+const usage = require("./usage");
 
 // Per-player budget for brain-bound chat (issue #1). Fast paths stay free.
 const chatBudget = makeBudget(CFG.chatBudget);
 
 const CTL_FILE = path.join(CFG.root, "companion_ctl.json");
+const USAGE_FILE = path.join(CFG.root, "clawd_usage.jsonl");
+
+// Brain-turn ledger (issue #6): one JSONL row per successful inject, runtime
+// state, gitignored + 0600, injected here so tests never touch it. Failures are
+// operational noise — they are logged and never change the chat path.
+const meter = usage.makeMeter({
+  file: USAGE_FILE,
+  onError: (msg) => log(`metering: ${msg}`),
+});
 
 const LAUNCHER = path.join(CFG.root, "session/clawd_session.sh");
 const OPS = new Set(CFG.ops);
@@ -48,7 +60,7 @@ const AVATAR = `@e[type=minecraft:allay,tag=${CFG.avatarTag},limit=1]`;
 const TRIGGER_RE = /^@?clawd[,:!.]?\s*(.*)$/i;
 // Phrases handle() answers bridge-side without waking the brain (no tokens).
 // Informational (used by --dry); keep in sync with the fast paths in handle().
-const FAST_PATH_RE = /^(listen(\s+(on|off|status))?|stay|wait|wait here|go home|home|go tidy up|follow me|follow|come along|come|here|come here|reset|)$/i;
+const FAST_PATH_RE = /^(listen(\s+(on|off|status))?|stay|wait|wait here|go home|home|go tidy up|follow me|follow|come along|come|here|come here|reset|usage|)$/i;
 
 const ts = () => new Date().toISOString().slice(11, 19);
 const log = (...a) => console.log(`[${ts()}]`, ...a);
@@ -201,7 +213,7 @@ function sendKeysPty(...args) {
   );
 }
 
-async function inject(text) {
+async function sendToBrain(text) {
   if (!(await ensureSession())) return false;
   const clean = text.replace(/[\r\n]+/g, " ").trim();
   const target = (await brainPane()) || CFG.tmuxSession;
@@ -216,6 +228,9 @@ async function inject(text) {
   }
   return true;
 }
+// The tested wrapper records only after sendToBrain returns true, which means
+// both send-keys calls succeeded. /clear supplies no kind and remains free.
+const inject = usage.meteredInject(sendToBrain, meter);
 
 // ─── Chat handling ───────────────────────────────────────────────────────────
 async function handle(player, message) {
@@ -265,8 +280,33 @@ async function handle(player, message) {
       await say("My brain is shared with my operator right now — I can't wipe it. Ask them!");
       return;
     }
+    // A /clear is housekeeping, not a brain turn — not metered (kind omitted).
     await inject("/clear");
     await say("*shakes sparkles off* Fresh start! What's up?");
+    return;
+  }
+  // `clawd usage` — op-only, bridge-side, free: one ledger read, no brain turn,
+  // nothing metered, and the reply is a PRIVATE tellraw to the requesting op
+  // (never a broadcast). Non-ops get a canned line and no counts.
+  if (/^usage$/i.test(prompt)) {
+    const r = usage.opUsageReply(player, role, { file: USAGE_FILE });
+    if (r.action === "refuse") {
+      const privateRefusal = usage.tellrawTo(
+        player, "Only operators can see my brain-turn ledger, sorry!");
+      if (privateRefusal) await rc(privateRefusal);
+      else log("usage refusal could not be delivered privately (invalid player name)");
+      return;
+    }
+    if (r.action === "error") {
+      log(`usage report failed (${player}): ${r.error}`);
+      if (r.command) await rc(r.command); // still private to the op
+      else log("usage error could not be delivered privately");
+      return;
+    }
+    log(`usage report via private RCON to ${player}: ${r.summary.total} injects (delivery unverified)`);
+    // NB: a successful RCON command returns an empty string (STRATEGY §4), so
+    // send success cannot be read off the reply — rc() logs its own failures.
+    await rc(r.command);
     return;
   }
   if (!prompt) {
@@ -291,7 +331,7 @@ async function handle(player, message) {
   await ensureAvatar(player);
   await startThinking();
   await rc(`title @a actionbar {"text":"✦ Clawd is thinking...","color":"gray","italic":true}`);
-  const ok = await inject(`[MC chat] <${player}> (${role}): ${prompt}`);
+  const ok = await inject(`[MC chat] <${player}> (${role}): ${prompt}`, { kind: "direct", player });
   if (ok) chatBudget.spend(player);
   if (!ok) {
     await rc(`effect clear ${AVATAR} minecraft:glowing`);
@@ -346,6 +386,12 @@ if (dryArg !== -1) {
     const prompt = t[1].trim();
     if (FAST_PATH_RE.test(prompt)) {
       console.log(`trigger (${role}) — fast path "${prompt || "(hello)"}": handled bridge-side, no tokens`);
+      // `clawd usage` is the one fast path with a permission gate and a report.
+      if (/^usage$/i.test(prompt)) {
+        console.log(role === "op"
+          ? "  usage: private report to this op — today's handoffs by kind + top players (reads clawd_usage.jsonl)"
+          : "  usage: refused — ops only, no counts to non-ops");
+      }
     } else {
       console.log(`trigger (${role}) — would inject into the brain: [MC chat] <${player}> (${role}): ${prompt}`);
     }
