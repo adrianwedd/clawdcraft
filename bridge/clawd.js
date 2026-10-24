@@ -24,7 +24,7 @@
 //   clawd stay          companion mode: freeze in place
 //   clawd go home       companion mode: return to the depot and tidy up
 //   clawd reset         clear the Clawd session's context (/clear)
-//   clawd usage         op-only: today's brain turns by kind + top players
+//   clawd usage         op-only: today's brain handoffs by kind + top players
 //                       (bridge-side, no tokens, told privately to the op)
 
 const fs = require("fs");
@@ -389,7 +389,7 @@ if (dryArg !== -1) {
       // `clawd usage` is the one fast path with a permission gate and a report.
       if (/^usage$/i.test(prompt)) {
         console.log(role === "op"
-          ? "  usage: private report to this op — today's turns by kind + top players (reads clawd_usage.jsonl)"
+          ? "  usage: private report to this op — today's handoffs by kind + top players (reads clawd_usage.jsonl)"
           : "  usage: refused — ops only, no counts to non-ops");
       }
     } else {

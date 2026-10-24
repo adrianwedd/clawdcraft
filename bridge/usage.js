@@ -1,7 +1,8 @@
 // usage.js — brain-turn metering + the op-only `clawd usage` report (issue #6).
 //
-// Every SUCCESSFUL injection into Clawd's brain is one paid turn. The bridge
-// appends exactly one JSONL row per successful inject:
+// The bridge records one handoff after each SUCCESSFUL tmux injection.
+// It does not observe model replies, provider requests, billed tokens or cost.
+// Each row represents that handoff only:
 //
 //   {"ts":"2026-09-29T06:22:11.123Z","kind":"direct","player":"Ana"}
 //
@@ -191,7 +192,7 @@ function formatReport(s) {
     ? s.topPlayers.map(([n, c]) => `${n} ${c}`).join(", ")
     : "none yet";
   const body =
-    `usage today (${s.day ?? "unknown"} UTC): ${s.partial ? "at least " : ""}${s.total} brain turn${s.total === 1 ? "" : "s"} — ` +
+    `usage today (${s.day ?? "unknown"} UTC): ${s.partial ? "at least " : ""}${s.total} brain handoff${s.total === 1 ? "" : "s"} — ` +
     `direct ${s.byKind.direct}, overheard ${s.byKind.overheard}, event ${s.byKind.event}. Top: ${tops}.`;
   const qualified = s.partial ? `${body} (ledger read window capped)` : body;
   return qualified.length > MAX_REPORT_CHARS

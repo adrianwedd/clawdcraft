@@ -16,7 +16,7 @@
 //                   and deaths from the server log are relayed as
 //                   `[MC event] ...` with a CraftGPT-style % chance each.
 //
-// Every successful relay is a paid brain turn, so injects carry structured
+// Successful relays are observable brain handoffs, so injects carry structured
 // metadata ({ kind: "overheard"|"event", player }) for the metering seam in
 // clawd.js (issue #6). Nothing else about these paths changed: same
 // cooldowns/caps, same prompts, no new world action.

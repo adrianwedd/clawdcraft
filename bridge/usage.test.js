@@ -266,7 +266,7 @@ const selectorsIn = (cmd) => cmd.match(/@[aeprs](\[[^\]]*\])?/g) || [];
     const r = U.opUsageReply("OpGuy", "op", { file: d, now: DAY1 });
     ok(r.action === "error" && typeof r.command === "string", "op reply degrades to a private error line");
     ok(r.command.startsWith('tellraw @a[name="OpGuy",limit=1] '), "error line is still private to the op");
-    ok(!/\d+ brain turn/.test(r.command), "error line leaks no counts");
+    ok(!/\d+ brain (?:turn|handoff)/.test(r.command), "error line leaks no counts");
   }
 
   // ── op-only routing + selector safety ────────────────────────────────────
