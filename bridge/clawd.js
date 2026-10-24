@@ -239,6 +239,30 @@ async function handle(player, message) {
   if (!m) return ambient.onChat(player, role, message);
   const prompt = m[1].trim();
   log(`trigger from ${player}: "${prompt || "(hello)"}"`);
+  // `clawd usage` — op-only, bridge-side, free: one ledger read, no brain turn,
+  // nothing metered, and the reply is a PRIVATE tellraw to the requesting op
+  // (never a broadcast). Non-ops get a canned line and no counts.
+  if (/^usage$/i.test(prompt)) {
+    const r = usage.opUsageReply(player, role, { file: USAGE_FILE });
+    if (r.action === "refuse") {
+      const privateRefusal = usage.tellrawTo(
+        player, "Only operators can see my brain-turn ledger, sorry!");
+      if (privateRefusal) await rc(privateRefusal);
+      else log("usage refusal could not be delivered privately (invalid player name)");
+      return;
+    }
+    if (r.action === "error") {
+      log(`usage report failed (${player}): ${r.error}`);
+      if (r.command) await rc(r.command); // still private to the op
+      else log("usage error could not be delivered privately");
+      return;
+    }
+    log(`usage report via private RCON to ${player}: ${r.summary.total} injects (delivery unverified)`);
+    // NB: a successful RCON command returns an empty string (STRATEGY §4), so
+    // send success cannot be read off the reply — rc() logs its own failures.
+    await rc(r.command);
+    return;
+  }
   companion.setTarget(player);
 
   const listen = prompt.match(/^listen(?:\s+(on|off|status))?$/i);
@@ -283,30 +307,6 @@ async function handle(player, message) {
     // A /clear is housekeeping, not a brain turn — not metered (kind omitted).
     await inject("/clear");
     await say("*shakes sparkles off* Fresh start! What's up?");
-    return;
-  }
-  // `clawd usage` — op-only, bridge-side, free: one ledger read, no brain turn,
-  // nothing metered, and the reply is a PRIVATE tellraw to the requesting op
-  // (never a broadcast). Non-ops get a canned line and no counts.
-  if (/^usage$/i.test(prompt)) {
-    const r = usage.opUsageReply(player, role, { file: USAGE_FILE });
-    if (r.action === "refuse") {
-      const privateRefusal = usage.tellrawTo(
-        player, "Only operators can see my brain-turn ledger, sorry!");
-      if (privateRefusal) await rc(privateRefusal);
-      else log("usage refusal could not be delivered privately (invalid player name)");
-      return;
-    }
-    if (r.action === "error") {
-      log(`usage report failed (${player}): ${r.error}`);
-      if (r.command) await rc(r.command); // still private to the op
-      else log("usage error could not be delivered privately");
-      return;
-    }
-    log(`usage report via private RCON to ${player}: ${r.summary.total} injects (delivery unverified)`);
-    // NB: a successful RCON command returns an empty string (STRATEGY §4), so
-    // send success cannot be read off the reply — rc() logs its own failures.
-    await rc(r.command);
     return;
   }
   if (!prompt) {
